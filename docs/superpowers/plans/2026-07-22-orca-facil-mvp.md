@@ -539,7 +539,7 @@ create table empresas (
 
 create table usuarios (
   id uuid primary key references auth.users(id) on delete cascade,
-  empresa_id uuid not null references empresas(id) on delete cascade,
+  empresa_id uuid not null unique references empresas(id) on delete cascade,
   nome text not null,
   created_at timestamptz not null default now()
 );
@@ -601,7 +601,7 @@ create policy "empresas_insert_authenticated" on empresas
 create policy "empresas_select_own" on empresas
   for select to authenticated using (id = auth_empresa_id());
 create policy "empresas_update_own" on empresas
-  for update to authenticated using (id = auth_empresa_id());
+  for update to authenticated using (id = auth_empresa_id()) with check (id = auth_empresa_id());
 
 create policy "usuarios_insert_self" on usuarios
   for insert to authenticated with check (id = auth.uid());
