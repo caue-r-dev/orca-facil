@@ -60,6 +60,8 @@ Vínculo usuário → empresa: tabela ponte `usuarios` (não JWT metadata). Esco
 
 Migrar do inline-style do protótipo para Tailwind, mantendo a direção visual (paleta blueprint/papel técnico, tipografia serifada para texto + monoespaçada para números). Paleta customizada no `tailwind.config`. Não usar template genérico de SaaS.
 
+Responsivo básico: layout builder/preview (grid 2 colunas) empilha em telas pequenas (builder em cima, preview embaixo) — só pra evitar conteúdo espremido/ilegível no celular, sem redesenhar o fluxo. Mobile de verdade (wizard por etapas, PWA) fica fora de escopo do MVP — ver seção abaixo.
+
 ## Erros e integridade de dados
 
 - Alteração de schema é sempre aditiva, nunca destrutiva — nenhum orçamento salvo pode ser perdido.
@@ -72,6 +74,7 @@ Migrar do inline-style do protótipo para Tailwind, mantendo a direção visual 
 - Integração WhatsApp
 - Banco legado (não há migração)
 - Domínio/subdomínio de produção — decidir antes do deploy final, não bloqueia desenvolvimento
+- Mobile de verdade: wizard por etapas, PWA — fase seguinte, depois de validar o MVP
 
 ## Protocolo de handshake antes de construir telas completas
 

@@ -1289,7 +1289,7 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
   }
 
   return (
-    <div className="mx-auto grid max-w-6xl grid-cols-[1.05fr_1fr] gap-7 px-5 py-8">
+    <div className="mx-auto grid max-w-6xl grid-cols-1 gap-7 px-5 py-8 lg:grid-cols-[1.05fr_1fr]">
       <div>
         <div className="mb-5 flex flex-wrap gap-2">
           {Object.entries(SEGMENTOS).map(([key, seg]) => (
@@ -1372,7 +1372,7 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
         </button>
       </div>
 
-      <div className="sticky top-5 self-start">
+      <div className="lg:sticky lg:top-5 self-start">
         <OrcamentoPreview
           empresaNome={empresaNome}
           segmentoLabel={SEGMENTOS[segmentoKey].label}
