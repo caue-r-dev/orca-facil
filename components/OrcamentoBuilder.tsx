@@ -176,7 +176,6 @@ function itemForroDoAmbiente(a: AmbientePayload): ItemForm & { localId: number }
 }
 
 export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valoresIniciais, onSalvar }: OrcamentoBuilderProps) {
-  const [segmentoKey, setSegmentoKey] = useState<SegmentoKey>(segmentoPadrao)
   const ambientesIniciais: AmbientePayload[] = (valoresIniciais?.ambientes ?? []).map((a) => ({
     localId: nextAmbienteLocalId++,
     nome: a.nome,
@@ -348,17 +347,6 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
   return (
     <div className="mx-auto grid max-w-6xl grid-cols-1 gap-7 px-5 py-8 lg:grid-cols-[1.05fr_1fr]">
       <div>
-        <div className="mb-5 flex flex-wrap gap-2">
-          {Object.entries(SEGMENTOS).map(([key, seg]) => (
-            <button
-              key={key}
-              onClick={() => { setSegmentoKey(key as SegmentoKey); setBdi(seg.bdiPadrao) }}
-              className={`rounded-sm border px-3.5 py-2 text-sm ${segmentoKey === key ? 'border-brass bg-brass-soft font-bold' : 'border-line'}`}
-            >
-              {seg.label}
-            </button>
-          ))}
-        </div>
 
         <div className="mb-7">
           <div className="mb-3 text-xs font-bold uppercase tracking-wide text-brass">Dados do orçamento</div>
@@ -694,7 +682,7 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
       <div className="lg:sticky lg:top-5 self-start">
         <OrcamentoPreview
           empresaNome={empresaNome}
-          segmentoLabel={SEGMENTOS[segmentoKey].label}
+          segmentoLabel={SEGMENTOS[segmentoPadrao].label}
           clienteNome={clienteNome}
           obraEndereco={obraEndereco}
           prazoExecucao={prazoExecucao}
