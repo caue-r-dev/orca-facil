@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { SEGMENTOS } from '@/lib/segmentos-seed'
 import { formatarMoeda } from '@/lib/calc'
@@ -31,6 +31,13 @@ interface AmbienteForm {
 
 export interface AmbientePayload extends AmbienteForm {
   localId: number
+}
+
+interface PickerAmbiente {
+  servicoId: string
+  medida: MedidaAmbiente
+  materialAberto: boolean
+  materialId: string
 }
 
 const MEDIDA_LABEL: Record<MedidaAmbiente, string> = {
@@ -100,8 +107,43 @@ interface OrcamentoBuilderProps {
 let nextLocalId = 1
 let nextAmbienteLocalId = 1
 
+// Rascunho de orçamento NOVO (ainda não salvo) só existe no navegador —
+// sair da tela (ex: pra Configurações) e voltar não pode zerar o
+// progresso. Só se aplica à criação (valoresIniciais ausente); editar
+// um orçamento existente já persiste no banco a cada Salvar.
+const RASCUNHO_KEY = 'orcamento-rascunho-novo'
+
+interface RascunhoOrcamento {
+  clienteNome: string
+  clienteContato: string
+  obraEndereco: string
+  prazoExecucao: string
+  validadeDias: number
+  formaPagamento: string
+  ambientes: AmbientePayload[]
+  itens: (ItemForm & { localId: number })[]
+}
+
+function carregarRascunho(): RascunhoOrcamento | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const bruto = window.localStorage.getItem(RASCUNHO_KEY)
+    return bruto ? (JSON.parse(bruto) as RascunhoOrcamento) : null
+  } catch {
+    return null
+  }
+}
+
 export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empresaNome, valoresIniciais, onSalvar }: OrcamentoBuilderProps) {
   const medidas = medidasDisponiveis(temParede)
+  const isNovo = !valoresIniciais
+  const rascunho = isNovo ? carregarRascunho() : null
+  if (rascunho) {
+    const maxAmbienteId = rascunho.ambientes.reduce((m, a) => Math.max(m, a.localId), 0)
+    const maxItemId = rascunho.itens.reduce((m, it) => Math.max(m, it.localId), 0)
+    nextAmbienteLocalId = Math.max(nextAmbienteLocalId, maxAmbienteId + 1)
+    nextLocalId = Math.max(nextLocalId, maxItemId + 1)
+  }
 
   const ambientesIniciais: AmbientePayload[] = (valoresIniciais?.ambientes ?? []).map((a) => ({
     localId: nextAmbienteLocalId++,
@@ -114,9 +156,10 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
     (valoresIniciais?.ambientes ?? []).map((a, i) => [a.id, ambientesIniciais[i].localId])
   )
   const materiaisBiblioteca = biblioteca.filter((item) => item.categoria === 'material')
-  const [ambientes, setAmbientes] = useState<AmbientePayload[]>(ambientesIniciais)
+  const servicosBiblioteca = biblioteca.filter((item) => item.categoria === 'mao_obra')
+  const [ambientes, setAmbientes] = useState<AmbientePayload[]>(rascunho?.ambientes ?? ambientesIniciais)
   const [itens, setItens] = useState<(ItemForm & { localId: number })[]>(
-    (valoresIniciais?.itens ?? []).map((it) => ({
+    rascunho?.itens ?? (valoresIniciais?.itens ?? []).map((it) => ({
       ...it,
       localId: nextLocalId++,
       ambienteLocalId: it.ambiente_id ? ambienteLocalIdPorDbId.get(it.ambiente_id) ?? null : null,
@@ -125,15 +168,27 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
       valorMaterial: it.valor_material,
     }))
   )
-  const [picker, setPicker] = useState<Record<number, { servicoId: string; medida: MedidaAmbiente }>>({})
-  const [clienteNome, setClienteNome] = useState(valoresIniciais?.clienteNome ?? '')
-  const [clienteContato, setClienteContato] = useState(valoresIniciais?.clienteContato ?? '')
-  const [obraEndereco, setObraEndereco] = useState(valoresIniciais?.obraEndereco ?? '')
-  const [prazoExecucao, setPrazoExecucao] = useState(valoresIniciais?.prazoExecucao ?? '')
-  const [validadeDias, setValidadeDias] = useState(valoresIniciais?.validadeDias ?? 7)
-  const [formaPagamento, setFormaPagamento] = useState(valoresIniciais?.formaPagamento ?? '50% de entrada, 50% na entrega')
+  const [picker, setPicker] = useState<Record<number, PickerAmbiente>>({})
+  function pickerPadrao(ambienteLocalId: number, estado: Record<number, PickerAmbiente>): PickerAmbiente {
+    return estado[ambienteLocalId] ?? { servicoId: '', medida: medidas[0], materialAberto: false, materialId: '' }
+  }
+  const [clienteNome, setClienteNome] = useState(rascunho?.clienteNome ?? valoresIniciais?.clienteNome ?? '')
+  const [clienteContato, setClienteContato] = useState(rascunho?.clienteContato ?? valoresIniciais?.clienteContato ?? '')
+  const [obraEndereco, setObraEndereco] = useState(rascunho?.obraEndereco ?? valoresIniciais?.obraEndereco ?? '')
+  const [prazoExecucao, setPrazoExecucao] = useState(rascunho?.prazoExecucao ?? valoresIniciais?.prazoExecucao ?? '')
+  const [validadeDias, setValidadeDias] = useState(rascunho?.validadeDias ?? valoresIniciais?.validadeDias ?? 7)
+  const [formaPagamento, setFormaPagamento] = useState(rascunho?.formaPagamento ?? valoresIniciais?.formaPagamento ?? '50% de entrada, 50% na entrega')
   const [erro, setErro] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
+
+  useEffect(() => {
+    if (!isNovo) return
+    const timer = setTimeout(() => {
+      const draft: RascunhoOrcamento = { clienteNome, clienteContato, obraEndereco, prazoExecucao, validadeDias, formaPagamento, ambientes, itens }
+      window.localStorage.setItem(RASCUNHO_KEY, JSON.stringify(draft))
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [isNovo, clienteNome, clienteContato, obraEndereco, prazoExecucao, validadeDias, formaPagamento, ambientes, itens])
 
   function adicionarAmbiente() {
     const novo: AmbientePayload = {
@@ -164,18 +219,31 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
   }
 
   function definirPickerServico(ambienteLocalId: number, servicoId: string) {
-    setPicker((prev) => ({ ...prev, [ambienteLocalId]: { medida: prev[ambienteLocalId]?.medida ?? medidas[0], servicoId } }))
+    setPicker((prev) => ({ ...prev, [ambienteLocalId]: { ...pickerPadrao(ambienteLocalId, prev), servicoId } }))
   }
 
   function definirPickerMedida(ambienteLocalId: number, medida: MedidaAmbiente) {
-    setPicker((prev) => ({ ...prev, [ambienteLocalId]: { servicoId: prev[ambienteLocalId]?.servicoId ?? '', medida } }))
+    setPicker((prev) => ({ ...prev, [ambienteLocalId]: { ...pickerPadrao(ambienteLocalId, prev), medida } }))
+  }
+
+  function alternarPickerMaterial(ambienteLocalId: number) {
+    setPicker((prev) => {
+      const atual = pickerPadrao(ambienteLocalId, prev)
+      return { ...prev, [ambienteLocalId]: { ...atual, materialAberto: !atual.materialAberto, materialId: atual.materialAberto ? '' : atual.materialId } }
+    })
+  }
+
+  function definirPickerMaterial(ambienteLocalId: number, materialId: string) {
+    setPicker((prev) => ({ ...prev, [ambienteLocalId]: { ...pickerPadrao(ambienteLocalId, prev), materialId } }))
   }
 
   function adicionarServicoAoAmbiente(ambienteLocalId: number) {
     const escolha = picker[ambienteLocalId]
     const ambiente = ambientes.find((a) => a.localId === ambienteLocalId)
-    const servico = escolha ? biblioteca.find((b) => b.id === escolha.servicoId) : undefined
+    const servico = escolha ? servicosBiblioteca.find((b) => b.id === escolha.servicoId) : undefined
     if (!ambiente || !servico || !escolha) return
+    const material = escolha.materialId ? materiaisBiblioteca.find((m) => m.id === escolha.materialId) : undefined
+    const valorMaterial = material ? material.valor_unit_padrao : 0
     setItens((prev) => [
       ...prev,
       {
@@ -187,24 +255,14 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
         comprimento: null,
         altura: null,
         quantidade: calcularMedida(ambiente, escolha.medida),
-        valor_unit: servico.valor_unit_padrao,
+        valor_unit: arredondar(servico.valor_unit_padrao + valorMaterial),
         ambienteLocalId: ambiente.localId,
         origem_ambiente: escolha.medida,
-        materialItemId: null,
-        valorMaterial: 0,
+        materialItemId: material ? material.id : null,
+        valorMaterial,
       },
     ])
-    setPicker((prev) => ({ ...prev, [ambienteLocalId]: { servicoId: '', medida: escolha.medida } }))
-  }
-
-  function atualizarMaterialItem(itemLocalId: number, materialId: string) {
-    setItens((prev) => prev.map((it) => {
-      if (it.localId !== itemLocalId) return it
-      const base = it.valor_unit - it.valorMaterial
-      const material = materialId ? materiaisBiblioteca.find((m) => m.id === materialId) : undefined
-      const valorMaterial = material ? material.valor_unit_padrao : 0
-      return { ...it, materialItemId: material ? material.id : null, valorMaterial, valor_unit: arredondar(base + valorMaterial) }
-    }))
+    setPicker((prev) => ({ ...prev, [ambienteLocalId]: { servicoId: '', medida: escolha.medida, materialAberto: false, materialId: '' } }))
   }
 
   function removerItem(localId: number) {
@@ -222,6 +280,10 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
       return
     }
     setSalvando(true)
+    // Limpa o rascunho local antes de enviar: se salvar com sucesso, o
+    // redirect pra tela de edição não deve trazer o rascunho antigo de
+    // volta na próxima vez que "Novo orçamento" for aberto.
+    if (isNovo) window.localStorage.removeItem(RASCUNHO_KEY)
     const resultado = await onSalvar({
       clienteNome, clienteContato, obraEndereco, prazoExecucao, validadeDias, formaPagamento,
       ambientes,
@@ -272,7 +334,7 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
             {ambientes.map((a) => {
               const itensDoAmbiente = itens.filter((it) => it.ambienteLocalId === a.localId)
               const totalAmbiente = itensDoAmbiente.reduce((soma, it) => soma + it.quantidade * it.valor_unit, 0)
-              const escolha = picker[a.localId] ?? { servicoId: '', medida: medidas[0] }
+              const escolha = pickerPadrao(a.localId, picker)
 
               return (
                 <div key={a.localId} className="flex flex-col gap-5 border border-line bg-white p-4 sm:p-5">
@@ -344,59 +406,70 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
                               </div>
                               <button onClick={() => removerItem(it.localId)} className="text-danger">×</button>
                             </div>
-                            {materiaisBiblioteca.length > 0 && (
-                              <label className="mt-2 flex flex-col gap-1 text-xs">Material (biblioteca) — opcional, soma ao valor
-                                <select
-                                  value={it.materialItemId ?? ''}
-                                  onChange={(e) => atualizarMaterialItem(it.localId, e.target.value)}
-                                  className="w-full max-w-xs border-b border-line bg-white py-1 outline-none focus:border-brass"
-                                >
-                                  <option value="">Nenhum</option>
-                                  {materiaisBiblioteca.map((m) => (
-                                    <option key={m.id} value={m.id}>{m.descricao} — {formatarMoeda(m.valor_unit_padrao)}/{m.unidade}</option>
-                                  ))}
-                                </select>
-                              </label>
-                            )}
                           </div>
                         ))}
                       </div>
                     )}
 
-                    {biblioteca.length === 0 ? (
-                      <p className="text-xs text-ink-soft">Nenhum serviço cadastrado ainda. <Link href="/configuracoes" className="font-bold text-brass underline">Cadastre em Configurações</Link> primeiro.</p>
+                    {servicosBiblioteca.length === 0 ? (
+                      <p className="text-xs text-ink-soft">Nenhum serviço de mão de obra cadastrado ainda. <Link href="/configuracoes" className="font-bold text-brass underline">Cadastre em Configurações</Link> primeiro.</p>
                     ) : (
-                      <div className="flex flex-wrap items-end gap-2">
-                        <label className="flex flex-1 flex-col gap-1 text-xs" style={{ minWidth: '160px' }}>Serviço
-                          <select
-                            value={escolha.servicoId}
-                            onChange={(e) => definirPickerServico(a.localId, e.target.value)}
-                            className="border-b border-line bg-white py-1 outline-none focus:border-brass"
+                      <div className="flex flex-col gap-2">
+                        <div className="flex flex-wrap items-end gap-2">
+                          <label className="flex flex-1 flex-col gap-1 text-xs" style={{ minWidth: '160px' }}>Serviço (mão de obra)
+                            <select
+                              value={escolha.servicoId}
+                              onChange={(e) => definirPickerServico(a.localId, e.target.value)}
+                              className="border-b border-line bg-white py-1 outline-none focus:border-brass"
+                            >
+                              <option value="">Selecione um serviço</option>
+                              {servicosBiblioteca.map((s) => (
+                                <option key={s.id} value={s.id}>{s.descricao} · {formatarMoeda(s.valor_unit_padrao)}/{s.unidade}</option>
+                              ))}
+                            </select>
+                          </label>
+                          <label className="flex flex-col gap-1 text-xs">Medida
+                            <select
+                              value={escolha.medida}
+                              onChange={(e) => definirPickerMedida(a.localId, e.target.value as MedidaAmbiente)}
+                              className="border-b border-line bg-white py-1 outline-none focus:border-brass"
+                            >
+                              {medidas.map((m) => (
+                                <option key={m} value={m}>{MEDIDA_LABEL[m]}</option>
+                              ))}
+                            </select>
+                          </label>
+                          {materiaisBiblioteca.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => alternarPickerMaterial(a.localId)}
+                              className={`rounded-sm border px-3 py-1.5 text-xs ${escolha.materialAberto ? 'border-brass bg-brass-soft font-bold' : 'border-line text-ink-soft'}`}
+                            >
+                              + Material
+                            </button>
+                          )}
+                          <button
+                            onClick={() => adicionarServicoAoAmbiente(a.localId)}
+                            disabled={!escolha.servicoId}
+                            className="rounded-sm border border-dashed border-line px-3.5 py-2 text-sm text-ink-soft disabled:opacity-50"
                           >
-                            <option value="">Selecione um serviço</option>
-                            {biblioteca.map((s) => (
-                              <option key={s.id} value={s.id}>{s.descricao} · {formatarMoeda(s.valor_unit_padrao)}/{s.unidade}</option>
-                            ))}
-                          </select>
-                        </label>
-                        <label className="flex flex-col gap-1 text-xs">Medida
-                          <select
-                            value={escolha.medida}
-                            onChange={(e) => definirPickerMedida(a.localId, e.target.value as MedidaAmbiente)}
-                            className="border-b border-line bg-white py-1 outline-none focus:border-brass"
-                          >
-                            {medidas.map((m) => (
-                              <option key={m} value={m}>{MEDIDA_LABEL[m]}</option>
-                            ))}
-                          </select>
-                        </label>
-                        <button
-                          onClick={() => adicionarServicoAoAmbiente(a.localId)}
-                          disabled={!escolha.servicoId}
-                          className="rounded-sm border border-dashed border-line px-3.5 py-2 text-sm text-ink-soft disabled:opacity-50"
-                        >
-                          + Adicionar serviço ao ambiente
-                        </button>
+                            + Adicionar serviço ao ambiente
+                          </button>
+                        </div>
+                        {escolha.materialAberto && (
+                          <label className="flex flex-col gap-1 text-xs" style={{ maxWidth: '320px' }}>Material por conta do prestador — soma ao valor do serviço
+                            <select
+                              value={escolha.materialId}
+                              onChange={(e) => definirPickerMaterial(a.localId, e.target.value)}
+                              className="w-full border-b border-line bg-white py-1 outline-none focus:border-brass"
+                            >
+                              <option value="">Selecione um material</option>
+                              {materiaisBiblioteca.map((m) => (
+                                <option key={m.id} value={m.id}>{m.descricao} — {formatarMoeda(m.valor_unit_padrao)}/{m.unidade}</option>
+                              ))}
+                            </select>
+                          </label>
+                        )}
                       </div>
                     )}
 
