@@ -24,6 +24,13 @@ export function calcularOrcamento(
   return { subtotalMaterial, subtotalMaoObra, subtotal, total: subtotal }
 }
 
+// Itens de ambiente nascem como "Serviço — Nome do Ambiente" (ver
+// adicionarServicoAoAmbiente em OrcamentoBuilder). Usado pra listar só
+// o nome do serviço sem repetir o ambiente já indicado na própria linha.
+export function nomeServicoSemAmbiente(descricao: string): string {
+  return descricao.split(' — ')[0]
+}
+
 export function formatarMoeda(n: number): string {
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }

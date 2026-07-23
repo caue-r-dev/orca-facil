@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { SEGMENTOS } from '@/lib/segmentos-seed'
-import { formatarMoeda } from '@/lib/calc'
+import { formatarMoeda, nomeServicoSemAmbiente } from '@/lib/calc'
 import { OrcamentoPreview } from './OrcamentoPreview'
 import type { AmbienteOrcamento, Categoria, ItemBiblioteca, ItemOrcamento, MedidaAmbiente, ModoMedicao } from '@/lib/types'
 
@@ -91,6 +91,12 @@ interface OrcamentoBuilderProps {
   segmentoPadrao: string
   temParede: boolean
   empresaNome: string
+  cnpj?: string | null
+  telefone?: string | null
+  // Ausentes em "Novo orçamento" (ainda não existe id/data até salvar) —
+  // o preview mostra "—" nesse caso.
+  numeroOrcamento?: string
+  dataCriacao?: string
   valoresIniciais?: {
     clienteNome: string
     clienteContato: string
@@ -134,7 +140,7 @@ function carregarRascunho(): RascunhoOrcamento | null {
   }
 }
 
-export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empresaNome, valoresIniciais, onSalvar }: OrcamentoBuilderProps) {
+export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empresaNome, cnpj, telefone, numeroOrcamento, dataCriacao, valoresIniciais, onSalvar }: OrcamentoBuilderProps) {
   const medidas = medidasDisponiveis(temParede)
   const isNovo = !valoresIniciais
   const rascunho = isNovo ? carregarRascunho() : null
@@ -516,6 +522,10 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
       <div className="lg:sticky lg:top-5 self-start">
         <OrcamentoPreview
           empresaNome={empresaNome}
+          cnpj={cnpj}
+          telefone={telefone}
+          numeroOrcamento={numeroOrcamento}
+          dataCriacao={dataCriacao}
           segmentoLabel={SEGMENTOS[segmentoPadrao as keyof typeof SEGMENTOS]?.label ?? segmentoPadrao}
           clienteNome={clienteNome}
           obraEndereco={obraEndereco}
@@ -523,6 +533,13 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
           validadeDias={validadeDias}
           formaPagamento={formaPagamento}
           itens={itens}
+          ambientes={ambientes.map((a) => ({
+            nome: a.nome,
+            comprimento: a.comprimento,
+            largura: a.largura,
+            peDireito: a.peDireito,
+            servicos: itens.filter((it) => it.ambienteLocalId === a.localId).map((it) => nomeServicoSemAmbiente(it.descricao)),
+          }))}
         />
       </div>
     </div>

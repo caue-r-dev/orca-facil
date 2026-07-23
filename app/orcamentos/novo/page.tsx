@@ -27,6 +27,8 @@ export default async function NovoOrcamentoPage() {
       segmentoPadrao={empresa?.segmento_padrao ?? 'geral'}
       temParede={empresa?.tem_parede ?? false}
       empresaNome={empresa?.nome ?? ''}
+      cnpj={empresa?.cnpj}
+      telefone={empresa?.telefone}
       onSalvar={criarComEmpresa}
     />
   )

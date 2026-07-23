@@ -38,6 +38,10 @@ export default async function EditarOrcamentoPage({ params }: { params: Promise<
       segmentoPadrao={empresa?.segmento_padrao ?? 'geral'}
       temParede={empresa?.tem_parede ?? false}
       empresaNome={empresa?.nome ?? ''}
+      cnpj={empresa?.cnpj}
+      telefone={empresa?.telefone}
+      numeroOrcamento={orcamento.id.slice(0, 8).toUpperCase()}
+      dataCriacao={new Date(orcamento.created_at).toLocaleDateString('pt-BR')}
       valoresIniciais={{
         clienteNome: orcamento.cliente_nome,
         clienteContato: orcamento.cliente_contato ?? '',
