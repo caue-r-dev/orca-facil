@@ -5,6 +5,22 @@ import { createClient } from '@/lib/supabase/server'
 import type { OrcamentoBuilderPayload } from '@/components/OrcamentoBuilder'
 
 export async function criarOrcamento(empresaId: string, payload: OrcamentoBuilderPayload): Promise<{ error?: string }> {
+  try {
+    return await criarOrcamentoInterno(empresaId, payload)
+  } catch (e) {
+    // redirect() bem-sucedido lança uma exceção especial com esse
+    // digest — precisa continuar subindo pra o Next tratar a
+    // navegação. Qualquer outra exceção não prevista (em vez de
+    // deixar a action "sumir" sem retornar nada pro client) vira um
+    // erro normal exibível na tela.
+    if (e && typeof e === 'object' && 'digest' in e && typeof e.digest === 'string' && e.digest.startsWith('NEXT_REDIRECT')) {
+      throw e
+    }
+    return { error: e instanceof Error ? e.message : 'Não foi possível salvar o orçamento.' }
+  }
+}
+
+async function criarOrcamentoInterno(empresaId: string, payload: OrcamentoBuilderPayload): Promise<{ error?: string }> {
   const supabase = await createClient()
 
   const { data: orcamento, error: orcamentoError } = await supabase

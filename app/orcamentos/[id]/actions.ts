@@ -5,6 +5,17 @@ import { createClient } from '@/lib/supabase/server'
 import type { OrcamentoBuilderPayload } from '@/components/OrcamentoBuilder'
 
 export async function atualizarOrcamento(orcamentoId: string, payload: OrcamentoBuilderPayload): Promise<{ error?: string }> {
+  try {
+    return await atualizarOrcamentoInterno(orcamentoId, payload)
+  } catch (e) {
+    // Mesmo raciocínio de app/orcamentos/novo/actions.ts: nunca deixar
+    // a action "sumir" sem retornar nada pro client em caso de erro
+    // inesperado.
+    return { error: e instanceof Error ? e.message : 'Não foi possível salvar o orçamento.' }
+  }
+}
+
+async function atualizarOrcamentoInterno(orcamentoId: string, payload: OrcamentoBuilderPayload): Promise<{ error?: string }> {
   const supabase = await createClient()
 
   const { error: orcamentoError } = await supabase

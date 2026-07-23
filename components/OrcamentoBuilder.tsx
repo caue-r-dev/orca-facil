@@ -284,14 +284,33 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
     // redirect pra tela de edição não deve trazer o rascunho antigo de
     // volta na próxima vez que "Novo orçamento" for aberto.
     if (isNovo) window.localStorage.removeItem(RASCUNHO_KEY)
-    const resultado = await onSalvar({
-      clienteNome, clienteContato, obraEndereco, prazoExecucao, validadeDias, formaPagamento,
-      ambientes,
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      itens: itens.map(({ localId, ...rest }) => rest),
-    })
-    setSalvando(false)
-    if (resultado.error) setErro(resultado.error)
+    try {
+      const resultado = await onSalvar({
+        clienteNome, clienteContato, obraEndereco, prazoExecucao, validadeDias, formaPagamento,
+        ambientes,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        itens: itens.map(({ localId, ...rest }) => rest),
+      })
+      setSalvando(false)
+      // redirect() bem-sucedido (criar orçamento novo) lança uma exceção
+      // especial em vez de retornar — chega aqui só quando a action
+      // termina sem redirecionar. Se por algum motivo ela não devolver
+      // nada (bug de servidor, resposta cortada), trata como erro
+      // genérico em vez de quebrar a tela tentando ler .error de undefined.
+      if (!resultado) {
+        setErro('Não foi possível salvar o orçamento. Tente novamente.')
+        return
+      }
+      if (resultado.error) setErro(resultado.error)
+    } catch (e) {
+      // Erro de redirect do Next (navegação de sucesso) precisa continuar
+      // subindo pra o framework tratar — não é uma falha real.
+      if (e && typeof e === 'object' && 'digest' in e && typeof e.digest === 'string' && e.digest.startsWith('NEXT_REDIRECT')) {
+        throw e
+      }
+      setSalvando(false)
+      setErro('Erro ao salvar orçamento. Tente novamente.')
+    }
   }
 
   return (
