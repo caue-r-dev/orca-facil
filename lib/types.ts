@@ -2,6 +2,8 @@ export type SegmentoKey = 'eletrica' | 'hidraulica' | 'construcao' | 'drywall' |
 export type Categoria = 'material' | 'mao_obra'
 export type OrcamentoStatus = 'rascunho' | 'enviado'
 export type ModoMedicao = 'manual' | 'metro_linear' | 'metro_quadrado'
+export type ChapeamentoTipo = 'simples' | 'duplo'
+export type OrigemAmbiente = 'chapeamento' | 'forro'
 
 export interface Empresa {
   id: string
@@ -46,6 +48,20 @@ export interface ItemOrcamento {
   altura: number | null
   quantidade: number
   valor_unit: number
+  ambiente_id: string | null
+  origem_ambiente: OrigemAmbiente | null
+}
+
+export interface AmbienteOrcamento {
+  id: string
+  orcamento_id: string
+  nome: string
+  comprimento: number
+  largura: number
+  pe_direito: number
+  chapeamento: ChapeamentoTipo
+  forro: boolean
+  created_at: string
 }
 
 export interface ItemBiblioteca {

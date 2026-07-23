@@ -2,7 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { OrcamentoBuilder } from '@/components/OrcamentoBuilder'
 import { atualizarOrcamento } from './actions'
-import type { Empresa, ItemBiblioteca, ItemOrcamento, Orcamento } from '@/lib/types'
+import type { AmbienteOrcamento, Empresa, ItemBiblioteca, ItemOrcamento, Orcamento } from '@/lib/types'
 
 export default async function EditarOrcamentoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -17,6 +17,7 @@ export default async function EditarOrcamentoPage({ params }: { params: Promise<
   if (!orcamento) notFound()
 
   const { data: itens } = await supabase.from('itens_orcamento').select('*').eq('orcamento_id', id).returns<ItemOrcamento[]>()
+  const { data: ambientes } = await supabase.from('ambientes_orcamento').select('*').eq('orcamento_id', id).returns<AmbienteOrcamento[]>()
   const { data: empresa } = await supabase.from('empresas').select('*').eq('id', usuario.empresa_id).single<Empresa>()
   const { data: biblioteca } = await supabase
     .from('itens_biblioteca_empresa')
@@ -40,6 +41,7 @@ export default async function EditarOrcamentoPage({ params }: { params: Promise<
         formaPagamento: orcamento.forma_pagamento ?? '',
         bdi: orcamento.bdi,
         itens: itens ?? [],
+        ambientes: ambientes ?? [],
       }}
       onSalvar={atualizarComId}
     />

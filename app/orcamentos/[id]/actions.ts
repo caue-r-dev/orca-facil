@@ -25,9 +25,37 @@ export async function atualizarOrcamento(orcamentoId: string, payload: Orcamento
     return { error: orcamentoError.message }
   }
 
-  const { error: deleteError } = await supabase.from('itens_orcamento').delete().eq('orcamento_id', orcamentoId)
-  if (deleteError) {
-    return { error: deleteError.message }
+  const { error: deleteItensError } = await supabase.from('itens_orcamento').delete().eq('orcamento_id', orcamentoId)
+  if (deleteItensError) {
+    return { error: deleteItensError.message }
+  }
+
+  const { error: deleteAmbientesError } = await supabase.from('ambientes_orcamento').delete().eq('orcamento_id', orcamentoId)
+  if (deleteAmbientesError) {
+    return { error: deleteAmbientesError.message }
+  }
+
+  const ambienteIdPorLocalId = new Map<number, string>()
+  if (payload.ambientes.length > 0) {
+    const { data: ambientesInseridos, error: ambientesError } = await supabase
+      .from('ambientes_orcamento')
+      .insert(
+        payload.ambientes.map((a) => ({
+          orcamento_id: orcamentoId,
+          nome: a.nome,
+          comprimento: a.comprimento,
+          largura: a.largura,
+          pe_direito: a.peDireito,
+          chapeamento: a.chapeamento,
+          forro: a.forro,
+        }))
+      )
+      .select('id')
+
+    if (ambientesError || !ambientesInseridos) {
+      return { error: ambientesError?.message ?? 'Não foi possível salvar os ambientes.' }
+    }
+    payload.ambientes.forEach((a, i) => ambienteIdPorLocalId.set(a.localId, ambientesInseridos[i].id))
   }
 
   const { error: insertError } = await supabase.from('itens_orcamento').insert(
@@ -41,6 +69,8 @@ export async function atualizarOrcamento(orcamentoId: string, payload: Orcamento
       altura: it.altura,
       quantidade: it.quantidade,
       valor_unit: it.valor_unit,
+      ambiente_id: it.ambienteLocalId !== null ? ambienteIdPorLocalId.get(it.ambienteLocalId) ?? null : null,
+      origem_ambiente: it.origem_ambiente,
     }))
   )
   if (insertError) {

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { SEGMENTOS } from '@/lib/segmentos-seed'
 import { OrcamentoPreview } from './OrcamentoPreview'
-import type { Categoria, ItemBiblioteca, ItemOrcamento, ModoMedicao, SegmentoKey } from '@/lib/types'
+import type { AmbienteOrcamento, Categoria, ChapeamentoTipo, ItemBiblioteca, ItemOrcamento, ModoMedicao, OrigemAmbiente, SegmentoKey } from '@/lib/types'
 
 interface ItemForm {
   descricao: string
@@ -14,6 +14,21 @@ interface ItemForm {
   altura: number | null
   quantidade: number
   valor_unit: number
+  ambienteLocalId: number | null
+  origem_ambiente: OrigemAmbiente | null
+}
+
+interface AmbienteForm {
+  nome: string
+  comprimento: number
+  largura: number
+  peDireito: number
+  chapeamento: ChapeamentoTipo
+  forro: boolean
+}
+
+export interface AmbientePayload extends AmbienteForm {
+  localId: number
 }
 
 const MODO_MEDICAO_LABEL: Record<ModoMedicao, string> = {
@@ -34,6 +49,23 @@ function modoMedicaoPadrao(unidade: string): ModoMedicao {
   return 'manual'
 }
 
+function arredondar(n: number): number {
+  return Math.round(n * 100) / 100
+}
+
+// Mirrors the Belini reference calculator: chapeamento área = perímetro
+// (2 × (comprimento + largura)) × pé-direito, doubled when chapeamento
+// is "duplo"; forro área = comprimento × largura (piso/teto do cômodo).
+function calcularAreaChapeamento(a: AmbienteForm): number {
+  const perimetro = 2 * ((Number(a.comprimento) || 0) + (Number(a.largura) || 0))
+  const area = perimetro * (Number(a.peDireito) || 0)
+  return arredondar(a.chapeamento === 'duplo' ? area * 2 : area)
+}
+
+function calcularAreaForro(a: AmbienteForm): number {
+  return arredondar((Number(a.comprimento) || 0) * (Number(a.largura) || 0))
+}
+
 export interface OrcamentoBuilderPayload {
   clienteNome: string
   clienteContato: string
@@ -42,6 +74,7 @@ export interface OrcamentoBuilderPayload {
   validadeDias: number
   formaPagamento: string
   bdi: number
+  ambientes: AmbientePayload[]
   itens: ItemForm[]
 }
 
@@ -58,16 +91,67 @@ interface OrcamentoBuilderProps {
     formaPagamento: string
     bdi: number
     itens: ItemOrcamento[]
+    ambientes: AmbienteOrcamento[]
   }
   onSalvar: (payload: OrcamentoBuilderPayload) => Promise<{ error?: string }>
 }
 
 let nextLocalId = 1
+let nextAmbienteLocalId = 1
+
+function itemChapeamentoDoAmbiente(a: AmbientePayload): ItemForm & { localId: number } {
+  return {
+    localId: nextLocalId++,
+    descricao: `Chapeamento — ${a.nome}`,
+    categoria: 'mao_obra',
+    unidade: 'm²',
+    modo_medicao: 'manual',
+    comprimento: null,
+    altura: null,
+    quantidade: calcularAreaChapeamento(a),
+    valor_unit: 0,
+    ambienteLocalId: a.localId,
+    origem_ambiente: 'chapeamento',
+  }
+}
+
+function itemForroDoAmbiente(a: AmbientePayload): ItemForm & { localId: number } {
+  return {
+    localId: nextLocalId++,
+    descricao: `Forro — ${a.nome}`,
+    categoria: 'mao_obra',
+    unidade: 'm²',
+    modo_medicao: 'manual',
+    comprimento: null,
+    altura: null,
+    quantidade: calcularAreaForro(a),
+    valor_unit: 0,
+    ambienteLocalId: a.localId,
+    origem_ambiente: 'forro',
+  }
+}
 
 export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valoresIniciais, onSalvar }: OrcamentoBuilderProps) {
   const [segmentoKey, setSegmentoKey] = useState<SegmentoKey>(segmentoPadrao)
+  const ambientesIniciais: AmbientePayload[] = (valoresIniciais?.ambientes ?? []).map((a) => ({
+    localId: nextAmbienteLocalId++,
+    nome: a.nome,
+    comprimento: a.comprimento,
+    largura: a.largura,
+    peDireito: a.pe_direito,
+    chapeamento: a.chapeamento,
+    forro: a.forro,
+  }))
+  const ambienteLocalIdPorDbId = new Map(
+    (valoresIniciais?.ambientes ?? []).map((a, i) => [a.id, ambientesIniciais[i].localId])
+  )
+  const [ambientes, setAmbientes] = useState<AmbientePayload[]>(ambientesIniciais)
   const [itens, setItens] = useState<(ItemForm & { localId: number })[]>(
-    (valoresIniciais?.itens ?? []).map((it) => ({ ...it, localId: nextLocalId++ }))
+    (valoresIniciais?.itens ?? []).map((it) => ({
+      ...it,
+      localId: nextLocalId++,
+      ambienteLocalId: it.ambiente_id ? ambienteLocalIdPorDbId.get(it.ambiente_id) ?? null : null,
+    }))
   )
   const [bdi, setBdi] = useState(valoresIniciais?.bdi ?? SEGMENTOS[segmentoPadrao].bdiPadrao)
   const [clienteNome, setClienteNome] = useState(valoresIniciais?.clienteNome ?? '')
@@ -95,6 +179,8 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
         altura,
         quantidade: calcularQuantidade(modo, comprimento, altura, 1),
         valor_unit: item.valor_unit_padrao,
+        ambienteLocalId: null,
+        origem_ambiente: null,
       },
     ])
   }
@@ -102,12 +188,59 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
   function adicionarItemVazio() {
     setItens((prev) => [
       ...prev,
-      { localId: nextLocalId++, descricao: '', unidade: 'un', categoria: 'mao_obra', modo_medicao: 'manual', comprimento: null, altura: null, quantidade: 1, valor_unit: 0 },
+      { localId: nextLocalId++, descricao: '', unidade: 'un', categoria: 'mao_obra', modo_medicao: 'manual', comprimento: null, altura: null, quantidade: 1, valor_unit: 0, ambienteLocalId: null, origem_ambiente: null },
     ])
   }
 
   function atualizarItem<K extends keyof ItemForm>(localId: number, campo: K, valor: ItemForm[K]) {
     setItens((prev) => prev.map((it) => (it.localId === localId ? { ...it, [campo]: valor } : it)))
+  }
+
+  function adicionarAmbiente() {
+    const novo: AmbientePayload = {
+      localId: nextAmbienteLocalId++,
+      nome: `Ambiente ${ambientes.length + 1}`,
+      comprimento: 3,
+      largura: 3,
+      peDireito: 2.8,
+      chapeamento: 'simples',
+      forro: false,
+    }
+    setAmbientes((prev) => [...prev, novo])
+    setItens((prev) => [...prev, itemChapeamentoDoAmbiente(novo)])
+  }
+
+  function atualizarAmbiente<K extends keyof AmbienteForm>(localId: number, campo: K, valor: AmbienteForm[K]) {
+    const ambienteAtual = ambientes.find((a) => a.localId === localId)
+    if (!ambienteAtual) return
+    const novoAmbiente: AmbientePayload = { ...ambienteAtual, [campo]: valor }
+
+    setAmbientes((prev) => prev.map((a) => (a.localId === localId ? novoAmbiente : a)))
+
+    setItens((prev) => {
+      let novos = prev.map((it) => {
+        if (it.ambienteLocalId !== localId) return it
+        if (it.origem_ambiente === 'chapeamento') {
+          return { ...it, descricao: `Chapeamento — ${novoAmbiente.nome}`, quantidade: calcularAreaChapeamento(novoAmbiente) }
+        }
+        if (it.origem_ambiente === 'forro') {
+          return { ...it, descricao: `Forro — ${novoAmbiente.nome}`, quantidade: calcularAreaForro(novoAmbiente) }
+        }
+        return it
+      })
+      const temForro = novos.some((it) => it.ambienteLocalId === localId && it.origem_ambiente === 'forro')
+      if (novoAmbiente.forro && !temForro) {
+        novos = [...novos, itemForroDoAmbiente(novoAmbiente)]
+      } else if (!novoAmbiente.forro && temForro) {
+        novos = novos.filter((it) => !(it.ambienteLocalId === localId && it.origem_ambiente === 'forro'))
+      }
+      return novos
+    })
+  }
+
+  function removerAmbiente(localId: number) {
+    setAmbientes((prev) => prev.filter((a) => a.localId !== localId))
+    setItens((prev) => prev.filter((it) => it.ambienteLocalId !== localId))
   }
 
   function definirModoMedicao(localId: number, modo: ModoMedicao) {
@@ -144,6 +277,7 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
     setSalvando(true)
     const resultado = await onSalvar({
       clienteNome, clienteContato, obraEndereco, prazoExecucao, validadeDias, formaPagamento, bdi,
+      ambientes,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       itens: itens.map(({ localId, ...rest }) => rest),
     })
@@ -187,6 +321,56 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
           </label>
         </div>
 
+        <div className="mb-5">
+          <div className="mb-3 text-xs font-bold uppercase tracking-wide text-brass">Ambientes (cômodos)</div>
+          <div className="flex flex-col gap-2.5">
+            {ambientes.map((a) => (
+              <div key={a.localId} className="border border-line bg-white px-3 py-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <input
+                    value={a.nome}
+                    onChange={(e) => atualizarAmbiente(a.localId, 'nome', e.target.value)}
+                    className="font-bold text-brass bg-transparent outline-none border-b border-transparent focus:border-brass"
+                  />
+                  <button onClick={() => removerAmbiente(a.localId)} className="text-danger">×</button>
+                </div>
+
+                <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+                  <label className="flex flex-col gap-1">Comprimento (m)
+                    <input type="number" value={a.comprimento} onChange={(e) => atualizarAmbiente(a.localId, 'comprimento', Number(e.target.value))} className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+                  </label>
+                  <label className="flex flex-col gap-1">Largura (m)
+                    <input type="number" value={a.largura} onChange={(e) => atualizarAmbiente(a.localId, 'largura', Number(e.target.value))} className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+                  </label>
+                  <label className="flex flex-col gap-1">Pé-direito (m)
+                    <input type="number" value={a.peDireito} onChange={(e) => atualizarAmbiente(a.localId, 'peDireito', Number(e.target.value))} className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+                  </label>
+                </div>
+
+                <div className="mt-2 flex flex-wrap items-center gap-4 text-xs">
+                  <label className="flex items-center gap-1.5">Chapeamento
+                    <select value={a.chapeamento} onChange={(e) => atualizarAmbiente(a.localId, 'chapeamento', e.target.value as ChapeamentoTipo)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass">
+                      <option value="simples">Simples</option>
+                      <option value="duplo">Duplo</option>
+                    </select>
+                  </label>
+                  <label className="flex items-center gap-1.5">
+                    <input type="checkbox" checked={a.forro} onChange={(e) => atualizarAmbiente(a.localId, 'forro', e.target.checked)} />
+                    Forro
+                  </label>
+                </div>
+
+                <div className="mt-2 font-mono-num text-xs text-ink-soft">
+                  Chapeamento: {calcularAreaChapeamento(a).toFixed(2)} m²{a.forro && ` · Forro: ${calcularAreaForro(a).toFixed(2)} m²`}
+                </div>
+              </div>
+            ))}
+          </div>
+          <button onClick={adicionarAmbiente} className="mt-3 rounded-sm border border-dashed border-line px-3.5 py-2 text-sm text-ink-soft">
+            + Adicionar ambiente
+          </button>
+        </div>
+
         {biblioteca.length > 0 && (
           <div className="mb-5">
             <div className="mb-3 text-xs font-bold uppercase tracking-wide text-brass">Itens da sua biblioteca</div>
@@ -203,75 +387,94 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
         <div>
           <div className="mb-3 text-xs font-bold uppercase tracking-wide text-brass">Itens do orçamento</div>
           <div className="flex flex-col gap-2.5">
-            {itens.map((it) => (
-              <div key={it.localId} className="border-b border-dotted border-line pb-2.5">
-                <div className="grid grid-cols-[2.2fr_0.9fr_0.7fr_0.9fr_auto] items-center gap-2 text-sm">
-                  <input value={it.descricao} onChange={(e) => atualizarItem(it.localId, 'descricao', e.target.value)} placeholder="Descrição" className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
-                  <select value={it.categoria} onChange={(e) => atualizarItem(it.localId, 'categoria', e.target.value as Categoria)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass">
-                    <option value="material">Material</option>
-                    <option value="mao_obra">Mão de obra</option>
-                  </select>
-                  <input value={it.unidade} onChange={(e) => atualizarItem(it.localId, 'unidade', e.target.value)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
-                  <input type="number" value={it.valor_unit} onChange={(e) => atualizarItem(it.localId, 'valor_unit', Number(e.target.value))} className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
-                  <button onClick={() => removerItem(it.localId)} className="text-danger">×</button>
-                </div>
-
-                <div className="mt-1.5 grid grid-cols-[1fr_1fr_1fr_1fr] items-center gap-2 text-xs">
-                  <select
-                    value={it.modo_medicao}
-                    onChange={(e) => definirModoMedicao(it.localId, e.target.value as ModoMedicao)}
-                    className="border-b border-line bg-transparent py-1 outline-none focus:border-brass"
-                  >
-                    {(Object.keys(MODO_MEDICAO_LABEL) as ModoMedicao[]).map((modo) => (
-                      <option key={modo} value={modo}>{MODO_MEDICAO_LABEL[modo]}</option>
-                    ))}
-                  </select>
-
-                  {it.modo_medicao === 'manual' && (
+            {itens.map((it) => {
+              const vinculadoAmbiente = it.ambienteLocalId !== null
+              return (
+                <div key={it.localId} className="border-b border-dotted border-line pb-2.5">
+                  <div className="grid grid-cols-[2.2fr_0.9fr_0.7fr_0.9fr_auto] items-center gap-2 text-sm">
                     <input
-                      type="number"
-                      value={it.quantidade}
-                      onChange={(e) => atualizarItem(it.localId, 'quantidade', Number(e.target.value))}
-                      placeholder="Quantidade"
-                      className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass"
+                      value={it.descricao}
+                      onChange={(e) => atualizarItem(it.localId, 'descricao', e.target.value)}
+                      placeholder="Descrição"
+                      disabled={vinculadoAmbiente}
+                      className="border-b border-line bg-transparent py-1 outline-none focus:border-brass disabled:opacity-60"
                     />
-                  )}
+                    <select value={it.categoria} onChange={(e) => atualizarItem(it.localId, 'categoria', e.target.value as Categoria)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass">
+                      <option value="material">Material</option>
+                      <option value="mao_obra">Mão de obra</option>
+                    </select>
+                    <input value={it.unidade} onChange={(e) => atualizarItem(it.localId, 'unidade', e.target.value)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+                    <input type="number" value={it.valor_unit} onChange={(e) => atualizarItem(it.localId, 'valor_unit', Number(e.target.value))} className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+                    {vinculadoAmbiente ? (
+                      <span className="text-center text-xs text-ink-soft" title="Gerado por um ambiente — edite ou remova o ambiente para alterar">🔗</span>
+                    ) : (
+                      <button onClick={() => removerItem(it.localId)} className="text-danger">×</button>
+                    )}
+                  </div>
 
-                  {it.modo_medicao === 'metro_linear' && (
-                    <input
-                      type="number"
-                      value={it.comprimento ?? 0}
-                      onChange={(e) => atualizarMedida(it.localId, 'comprimento', Number(e.target.value))}
-                      placeholder="Comprimento (m)"
-                      className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass"
-                    />
-                  )}
+                  {vinculadoAmbiente ? (
+                    <div className="mt-1.5 font-mono-num text-xs text-ink-soft">
+                      Gerado pelo ambiente · {it.origem_ambiente === 'chapeamento' ? 'Chapeamento' : 'Forro'} = {it.quantidade.toFixed(2)}{it.unidade}
+                    </div>
+                  ) : (
+                    <div className="mt-1.5 grid grid-cols-[1fr_1fr_1fr_1fr] items-center gap-2 text-xs">
+                      <select
+                        value={it.modo_medicao}
+                        onChange={(e) => definirModoMedicao(it.localId, e.target.value as ModoMedicao)}
+                        className="border-b border-line bg-transparent py-1 outline-none focus:border-brass"
+                      >
+                        {(Object.keys(MODO_MEDICAO_LABEL) as ModoMedicao[]).map((modo) => (
+                          <option key={modo} value={modo}>{MODO_MEDICAO_LABEL[modo]}</option>
+                        ))}
+                      </select>
 
-                  {it.modo_medicao === 'metro_quadrado' && (
-                    <>
-                      <input
-                        type="number"
-                        value={it.comprimento ?? 0}
-                        onChange={(e) => atualizarMedida(it.localId, 'comprimento', Number(e.target.value))}
-                        placeholder="Comprimento (m)"
-                        className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass"
-                      />
-                      <input
-                        type="number"
-                        value={it.altura ?? 0}
-                        onChange={(e) => atualizarMedida(it.localId, 'altura', Number(e.target.value))}
-                        placeholder="Altura (m)"
-                        className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass"
-                      />
-                    </>
-                  )}
+                      {it.modo_medicao === 'manual' && (
+                        <input
+                          type="number"
+                          value={it.quantidade}
+                          onChange={(e) => atualizarItem(it.localId, 'quantidade', Number(e.target.value))}
+                          placeholder="Quantidade"
+                          className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass"
+                        />
+                      )}
 
-                  {it.modo_medicao !== 'manual' && (
-                    <span className="font-mono-num text-ink-soft">= {it.quantidade}{it.unidade}</span>
+                      {it.modo_medicao === 'metro_linear' && (
+                        <input
+                          type="number"
+                          value={it.comprimento ?? 0}
+                          onChange={(e) => atualizarMedida(it.localId, 'comprimento', Number(e.target.value))}
+                          placeholder="Comprimento (m)"
+                          className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass"
+                        />
+                      )}
+
+                      {it.modo_medicao === 'metro_quadrado' && (
+                        <>
+                          <input
+                            type="number"
+                            value={it.comprimento ?? 0}
+                            onChange={(e) => atualizarMedida(it.localId, 'comprimento', Number(e.target.value))}
+                            placeholder="Comprimento (m)"
+                            className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass"
+                          />
+                          <input
+                            type="number"
+                            value={it.altura ?? 0}
+                            onChange={(e) => atualizarMedida(it.localId, 'altura', Number(e.target.value))}
+                            placeholder="Altura (m)"
+                            className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass"
+                          />
+                        </>
+                      )}
+
+                      {it.modo_medicao !== 'manual' && (
+                        <span className="font-mono-num text-ink-soft">= {it.quantidade}{it.unidade}</span>
+                      )}
+                    </div>
                   )}
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
           <button onClick={adicionarItemVazio} className="mt-3 rounded-sm border border-dashed border-line px-3.5 py-2 text-sm text-ink-soft">
             + Item manual

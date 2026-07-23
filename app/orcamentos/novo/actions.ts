@@ -27,6 +27,29 @@ export async function criarOrcamento(empresaId: string, payload: OrcamentoBuilde
     return { error: orcamentoError?.message ?? 'Não foi possível salvar o orçamento.' }
   }
 
+  const ambienteIdPorLocalId = new Map<number, string>()
+  if (payload.ambientes.length > 0) {
+    const { data: ambientesInseridos, error: ambientesError } = await supabase
+      .from('ambientes_orcamento')
+      .insert(
+        payload.ambientes.map((a) => ({
+          orcamento_id: orcamento.id,
+          nome: a.nome,
+          comprimento: a.comprimento,
+          largura: a.largura,
+          pe_direito: a.peDireito,
+          chapeamento: a.chapeamento,
+          forro: a.forro,
+        }))
+      )
+      .select('id')
+
+    if (ambientesError || !ambientesInseridos) {
+      return { error: ambientesError?.message ?? 'Não foi possível salvar os ambientes.' }
+    }
+    payload.ambientes.forEach((a, i) => ambienteIdPorLocalId.set(a.localId, ambientesInseridos[i].id))
+  }
+
   const { error: itensError } = await supabase.from('itens_orcamento').insert(
     payload.itens.map((it) => ({
       orcamento_id: orcamento.id,
@@ -38,6 +61,8 @@ export async function criarOrcamento(empresaId: string, payload: OrcamentoBuilde
       altura: it.altura,
       quantidade: it.quantidade,
       valor_unit: it.valor_unit,
+      ambiente_id: it.ambienteLocalId !== null ? ambienteIdPorLocalId.get(it.ambienteLocalId) ?? null : null,
+      origem_ambiente: it.origem_ambiente,
     }))
   )
 
