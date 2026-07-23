@@ -25,6 +25,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <div className="flex gap-5">
                 <Link href="/dashboard">Dashboard</Link>
                 <Link href="/orcamentos/novo">Novo orçamento</Link>
+                <Link href="/materiais">Materiais</Link>
                 <Link href="/configuracoes">Configurações</Link>
               </div>
               <form action={sair}>

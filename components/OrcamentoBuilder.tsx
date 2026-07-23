@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { SEGMENTOS } from '@/lib/segmentos-seed'
 import { formatarMoeda } from '@/lib/calc'
 import { OrcamentoPreview } from './OrcamentoPreview'
@@ -470,7 +471,7 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
                       </div>
                       {a.materialChapeamento && (
                         materiaisBiblioteca.length === 0 ? (
-                          <p className="mt-2.5 text-xs text-ink-soft">Nenhum material cadastrado na biblioteca ainda. Cadastre em Configurações primeiro.</p>
+                          <p className="mt-2.5 text-xs text-ink-soft">Nenhum material cadastrado ainda. <Link href="/materiais" className="font-bold text-brass underline">Cadastre em Materiais</Link> primeiro.</p>
                         ) : (
                           <label className="mt-2.5 flex flex-col gap-1 text-xs">Material (biblioteca)
                             <select
@@ -508,7 +509,7 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
                         </div>
                         {a.materialForro && (
                           materiaisBiblioteca.length === 0 ? (
-                            <p className="mt-2.5 text-xs text-ink-soft">Nenhum material cadastrado na biblioteca ainda. Cadastre em Configurações primeiro.</p>
+                            <p className="mt-2.5 text-xs text-ink-soft">Nenhum material cadastrado ainda. <Link href="/materiais" className="font-bold text-brass underline">Cadastre em Materiais</Link> primeiro.</p>
                           ) : (
                             <label className="mt-2.5 flex flex-col gap-1 text-xs">Material (biblioteca)
                               <select

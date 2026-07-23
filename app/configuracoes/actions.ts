@@ -69,6 +69,7 @@ export async function adicionarItemBiblioteca(
   })
   if (error) return { error: error.message }
   revalidatePath('/configuracoes')
+  revalidatePath('/materiais')
   return {}
 }
 
@@ -77,5 +78,6 @@ export async function removerItemBiblioteca(itemId: string): Promise<{ error?: s
   const { error } = await supabase.from('itens_biblioteca_empresa').delete().eq('id', itemId)
   if (error) return { error: error.message }
   revalidatePath('/configuracoes')
+  revalidatePath('/materiais')
   return {}
 }
