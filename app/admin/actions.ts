@@ -43,7 +43,6 @@ export async function criarPrestador(formData: FormData): Promise<{ error?: stri
     password: senha,
     email_confirm: true,
   })
-  console.error('[DEBUG] createUser result', criarUserError?.message, criado?.user?.id)
   if (criarUserError || !criado.user) {
     return { error: criarUserError?.message ?? 'Não foi possível criar o usuário.' }
   }
@@ -89,4 +88,37 @@ export async function renovarAcesso(empresaId: string, novaData?: string): Promi
   const dataVencimento = novaData || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
   await admin.from('empresas').update({ data_vencimento: dataVencimento, ativo: true }).eq('id', empresaId)
   revalidatePath('/admin')
+}
+
+// Exclusão permanente — diferente de bloquear (pausa reversível).
+// Apagar a empresa já derruba em cascata (FK on delete cascade)
+// usuarios, orcamentos, itens_orcamento, itens_biblioteca_empresa e
+// eventos_uso; só falta apagar o usuário do Auth separadamente, já
+// que essa tabela não tem FK pra empresas. Mesma sequência usada na
+// limpeza manual de contas de teste.
+export async function excluirEmpresa(empresaId: string, nomeConfirmado: string): Promise<{ error?: string }> {
+  await exigirAdmin()
+  const admin = createAdminClient()
+
+  const { data: empresa } = await admin.from('empresas').select('nome').eq('id', empresaId).single<{ nome: string }>()
+  if (!empresa) {
+    return { error: 'Empresa não encontrada.' }
+  }
+  if (nomeConfirmado !== empresa.nome) {
+    return { error: 'Nome digitado não confere com o nome da empresa.' }
+  }
+
+  const { data: usuario } = await admin.from('usuarios').select('id').eq('empresa_id', empresaId).single<{ id: string }>()
+
+  const { error: empresaError } = await admin.from('empresas').delete().eq('id', empresaId)
+  if (empresaError) {
+    return { error: empresaError.message }
+  }
+
+  if (usuario) {
+    await admin.auth.admin.deleteUser(usuario.id)
+  }
+
+  revalidatePath('/admin')
+  return {}
 }

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { bloquearEmpresa, desbloquearEmpresa, renovarAcesso } from './actions'
+import { ExcluirEmpresaButton } from './ExcluirEmpresaButton'
 import { SEGMENTOS } from '@/lib/segmentos-seed'
 import type { Empresa, EventoUso, Usuario } from '@/lib/types'
 
@@ -128,6 +129,7 @@ export default async function AdminPage() {
                         <input type="date" name="novaData" defaultValue={vencimentoPadrao} className="font-mono-num w-32 border-b border-line bg-transparent py-0.5 text-xs outline-none focus:border-brass" />
                         <button type="submit" className="text-xs font-bold text-blueprint-deep underline">Renovar</button>
                       </form>
+                      <ExcluirEmpresaButton empresaId={empresa.id} empresaNome={empresa.nome} />
                     </div>
                   </td>
                 </tr>
