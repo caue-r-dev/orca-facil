@@ -1,0 +1,85 @@
+import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { atualizarEmpresa, adicionarItemBiblioteca, removerItemBiblioteca } from './actions'
+import type { Empresa, ItemBiblioteca } from '@/lib/types'
+
+export default async function ConfiguracoesPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const { data: usuario } = await supabase.from('usuarios').select('empresa_id').eq('id', user!.id).single()
+  if (!usuario) redirect('/login')
+
+  const { data: empresa } = await supabase.from('empresas').select('*').eq('id', usuario.empresa_id).single<Empresa>()
+  const { data: biblioteca } = await supabase
+    .from('itens_biblioteca_empresa')
+    .select('*')
+    .eq('empresa_id', usuario.empresa_id)
+    .order('descricao')
+    .returns<ItemBiblioteca[]>()
+
+  async function salvarEmpresa(formData: FormData) {
+    'use server'
+    await atualizarEmpresa(usuario!.empresa_id, {
+      nome: String(formData.get('nome') ?? ''),
+      telefone: String(formData.get('telefone') ?? ''),
+      bdiPadrao: Number(formData.get('bdiPadrao') ?? 0),
+    })
+  }
+
+  async function adicionarItem(formData: FormData) {
+    'use server'
+    await adicionarItemBiblioteca(usuario!.empresa_id, {
+      descricao: String(formData.get('descricao') ?? ''),
+      categoria: String(formData.get('categoria') ?? 'mao_obra') as 'material' | 'mao_obra',
+      unidade: String(formData.get('unidade') ?? 'un'),
+      valorUnitPadrao: Number(formData.get('valorUnitPadrao') ?? 0),
+    })
+  }
+
+  return (
+    <main className="mx-auto max-w-2xl px-6 py-12">
+      <h1 className="text-2xl font-bold text-blueprint-deep">Configurações</h1>
+
+      <form action={salvarEmpresa} className="mt-8 flex flex-col gap-4 border-b border-line pb-8">
+        <h2 className="text-xs font-bold uppercase tracking-wide text-brass">Dados da empresa</h2>
+        <label className="flex flex-col gap-1 text-sm">Nome
+          <input name="nome" defaultValue={empresa?.nome} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">Telefone
+          <input name="telefone" defaultValue={empresa?.telefone ?? ''} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">BDI padrão (%)
+          <input type="number" name="bdiPadrao" defaultValue={empresa?.bdi_padrao} className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+        </label>
+        <button type="submit" className="mt-2 self-start rounded-sm bg-blueprint-deep px-4 py-2 text-sm font-bold text-paper">Salvar</button>
+      </form>
+
+      <div className="mt-8">
+        <h2 className="text-xs font-bold uppercase tracking-wide text-brass">Biblioteca de itens</h2>
+        <ul className="mt-4 flex flex-col gap-2">
+          {(biblioteca ?? []).map((item) => (
+            <li key={item.id} className="flex items-center justify-between border border-line bg-white px-3 py-2 text-sm">
+              <span>{item.descricao} <span className="text-ink-soft">· R$ {item.valor_unit_padrao}/{item.unidade}</span></span>
+              <form action={async () => { 'use server'; await removerItemBiblioteca(item.id) }}>
+                <button type="submit" className="text-danger">×</button>
+              </form>
+            </li>
+          ))}
+        </ul>
+
+        <form action={adicionarItem} className="mt-4 grid grid-cols-[2fr_1fr_1fr_1fr_auto] items-center gap-2 text-sm">
+          <input name="descricao" placeholder="Descrição" required className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+          <select name="categoria" className="border-b border-line bg-transparent py-1 outline-none focus:border-brass">
+            <option value="material">Material</option>
+            <option value="mao_obra">Mão de obra</option>
+          </select>
+          <input name="unidade" placeholder="un" defaultValue="un" className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+          <input type="number" name="valorUnitPadrao" placeholder="0" className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+          <button type="submit" className="rounded-sm border border-dashed border-line px-3 py-1.5 text-ink-soft">+</button>
+        </form>
+      </div>
+    </main>
+  )
+}
