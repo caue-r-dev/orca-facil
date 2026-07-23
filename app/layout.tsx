@@ -15,6 +15,11 @@ async function sair() {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  let isAdmin = false
+  if (user) {
+    const { data: usuario } = await supabase.from('usuarios').select('role').eq('id', user.id).single<{ role: string }>()
+    isAdmin = usuario?.role === 'admin'
+  }
 
   return (
     <html lang="pt-BR">
@@ -23,10 +28,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <nav className="no-print bg-blueprint-deep px-6 py-3 text-paper">
             <div className="mx-auto flex max-w-6xl items-center justify-between text-sm">
               <div className="flex gap-5">
-                <Link href="/dashboard">Dashboard</Link>
-                <Link href="/orcamentos/novo">Novo orçamento</Link>
-                <Link href="/materiais">Materiais</Link>
-                <Link href="/configuracoes">Configurações</Link>
+                {isAdmin ? (
+                  <Link href="/admin">Admin</Link>
+                ) : (
+                  <>
+                    <Link href="/dashboard">Dashboard</Link>
+                    <Link href="/orcamentos/novo">Novo orçamento</Link>
+                    <Link href="/materiais">Materiais</Link>
+                    <Link href="/configuracoes">Configurações</Link>
+                  </>
+                )}
               </div>
               <form action={sair}>
                 <button type="submit" className="opacity-80">Sair</button>

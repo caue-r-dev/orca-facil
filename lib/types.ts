@@ -6,6 +6,8 @@ export type MedidaAmbiente = 'perimetro' | 'area' | 'area_parede'
 // 'chapeamento'/'forro' são valores legados (pré Ambiente universal),
 // ainda válidos no banco pra não quebrar orçamentos antigos.
 export type OrigemAmbiente = MedidaAmbiente | 'chapeamento' | 'forro'
+export type UsuarioRole = 'prestador' | 'admin'
+export type TipoEventoUso = 'login' | 'orcamento_criado'
 
 export interface Empresa {
   id: string
@@ -15,13 +17,23 @@ export interface Empresa {
   telefone: string | null
   logo_url: string | null
   cor_primaria: string
+  ativo: boolean
+  data_vencimento: string
   created_at: string
 }
 
 export interface Usuario {
   id: string
-  empresa_id: string
+  empresa_id: string | null
   nome: string
+  role: UsuarioRole
+  created_at: string
+}
+
+export interface EventoUso {
+  id: string
+  empresa_id: string
+  tipo_evento: TipoEventoUso
   created_at: string
 }
 

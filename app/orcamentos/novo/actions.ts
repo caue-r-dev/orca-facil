@@ -70,5 +70,7 @@ export async function criarOrcamento(empresaId: string, payload: OrcamentoBuilde
     return { error: itensError.message }
   }
 
+  await supabase.from('eventos_uso').insert({ empresa_id: empresaId, tipo_evento: 'orcamento_criado' })
+
   redirect(`/orcamentos/${orcamento.id}`)
 }
