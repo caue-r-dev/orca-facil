@@ -562,12 +562,13 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
               const vinculadoAmbiente = it.ambienteLocalId !== null
               return (
                 <div key={it.localId} className="border-b border-dotted border-line pb-2.5">
-                  <div className="grid grid-cols-[2.2fr_0.9fr_0.7fr_0.9fr_auto] items-center gap-2 text-sm">
-                    {vinculadoAmbiente ? (
-                      <span className="truncate border-b border-transparent py-1 font-bold text-blueprint-deep" title={it.descricao}>
-                        {it.descricao}
-                      </span>
-                    ) : (
+                  {vinculadoAmbiente && (
+                    <div className="mb-1.5 font-bold text-blueprint-deep" title={it.descricao}>
+                      {it.descricao}
+                    </div>
+                  )}
+                  <div className={`grid items-center gap-2 text-sm ${vinculadoAmbiente ? 'grid-cols-[0.9fr_0.7fr_0.9fr_auto]' : 'grid-cols-[2.2fr_0.9fr_0.7fr_0.9fr_auto]'}`}>
+                    {!vinculadoAmbiente && (
                       <input
                         value={it.descricao}
                         onChange={(e) => atualizarItem(it.localId, 'descricao', e.target.value)}
