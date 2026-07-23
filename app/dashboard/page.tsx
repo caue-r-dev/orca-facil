@@ -20,17 +20,19 @@ export default async function DashboardPage() {
       </div>
 
       {(!orcamentos || orcamentos.length === 0) ? (
-        <p className="mt-8 text-ink-soft italic">Nenhum orçamento ainda. Crie o primeiro.</p>
+        <div className="mt-8 border border-line bg-white p-8 text-center">
+          <p className="italic text-ink-soft">Nenhum orçamento ainda. Crie o primeiro.</p>
+        </div>
       ) : (
         <ul className="mt-8 flex flex-col gap-3">
           {orcamentos.map((o) => (
             <li key={o.id}>
               <Link
                 href={`/orcamentos/${o.id}`}
-                className="flex items-center justify-between rounded-sm border border-line bg-white px-4 py-3"
+                className="flex items-center justify-between border border-line bg-white px-4 py-4 transition-colors hover:border-brass sm:px-5"
               >
-                <span>{o.cliente_nome}</span>
-                <span className="font-mono-num text-sm text-ink-soft">{o.status}</span>
+                <span className="font-bold text-blueprint-deep">{o.cliente_nome}</span>
+                <span className="font-mono-num rounded-sm bg-paper px-2.5 py-1 text-[10px] uppercase tracking-wide text-ink-soft">{o.status}</span>
               </Link>
             </li>
           ))}

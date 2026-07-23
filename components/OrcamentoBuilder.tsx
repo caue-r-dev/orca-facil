@@ -360,25 +360,34 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
           ))}
         </div>
 
-        <div className="mb-6 grid grid-cols-2 gap-3.5 border-b border-line pb-5 text-sm">
-          <label className="flex flex-col gap-1">Cliente
-            <input value={clienteNome} onChange={(e) => setClienteNome(e.target.value)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
-          </label>
-          <label className="flex flex-col gap-1">Contato do cliente
-            <input value={clienteContato} onChange={(e) => setClienteContato(e.target.value)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
-          </label>
-          <label className="col-span-2 flex flex-col gap-1">Endereço da obra
-            <input value={obraEndereco} onChange={(e) => setObraEndereco(e.target.value)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
-          </label>
-          <label className="flex flex-col gap-1">Prazo de execução
-            <input value={prazoExecucao} onChange={(e) => setPrazoExecucao(e.target.value)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
-          </label>
-          <label className="flex flex-col gap-1">Validade (dias)
-            <input type="number" value={validadeDias} onChange={(e) => setValidadeDias(Number(e.target.value))} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
-          </label>
-          <label className="col-span-2 flex flex-col gap-1">Condições de pagamento
-            <input value={formaPagamento} onChange={(e) => setFormaPagamento(e.target.value)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
-          </label>
+        <div className="mb-7">
+          <div className="mb-3 text-xs font-bold uppercase tracking-wide text-brass">Dados do orçamento</div>
+          <div className="grid grid-cols-1 gap-4 border border-line bg-white p-4 text-sm sm:grid-cols-2 sm:gap-5 sm:p-5">
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">Cliente</span>
+              <input value={clienteNome} onChange={(e) => setClienteNome(e.target.value)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">Contato do cliente</span>
+              <input value={clienteContato} onChange={(e) => setClienteContato(e.target.value)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+            </label>
+            <label className="flex flex-col gap-1 sm:col-span-2">
+              <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">Endereço da obra</span>
+              <input value={obraEndereco} onChange={(e) => setObraEndereco(e.target.value)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">Prazo de execução</span>
+              <input value={prazoExecucao} onChange={(e) => setPrazoExecucao(e.target.value)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">Validade (dias)</span>
+              <input type="number" value={validadeDias} onChange={(e) => setValidadeDias(Number(e.target.value))} className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+            </label>
+            <label className="flex flex-col gap-1 sm:col-span-2">
+              <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">Condições de pagamento</span>
+              <input value={formaPagamento} onChange={(e) => setFormaPagamento(e.target.value)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+            </label>
+          </div>
         </div>
 
         {segmentoPadrao === 'drywall' && (
@@ -545,11 +554,11 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
         )}
 
         {biblioteca.length > 0 && (
-          <div className="mb-5">
+          <div className="mb-7">
             <div className="mb-3 text-xs font-bold uppercase tracking-wide text-brass">Itens da sua biblioteca</div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 border border-line bg-white p-4 sm:p-5">
               {biblioteca.map((item) => (
-                <button key={item.id} onClick={() => adicionarDaBiblioteca(item)} className="flex items-center gap-1 rounded-sm border border-line bg-white px-3 py-1.5 text-xs">
+                <button key={item.id} onClick={() => adicionarDaBiblioteca(item)} className="flex items-center gap-1 rounded-sm border border-line bg-paper px-3 py-1.5 text-xs">
                   + {item.descricao} <span className="opacity-50">· R$ {item.valor_unit_padrao}/{item.unidade}</span>
                 </button>
               ))}
@@ -557,9 +566,10 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
           </div>
         )}
 
-        <div>
+        <div className="mb-7">
           <div className="mb-3 text-xs font-bold uppercase tracking-wide text-brass">Itens do orçamento</div>
-          <div className="flex flex-col gap-2.5">
+          <div className="border border-line bg-white p-4 sm:p-5">
+          <div className="flex flex-col gap-4">
             {itens.map((it) => {
               const vinculadoAmbiente = it.ambienteLocalId !== null
               return (
@@ -660,20 +670,23 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
               )
             })}
           </div>
-          <button onClick={adicionarItemVazio} className="mt-3 rounded-sm border border-dashed border-line px-3.5 py-2 text-sm text-ink-soft">
+          <button onClick={adicionarItemVazio} className="mt-4 rounded-sm border border-dashed border-line px-3.5 py-2 text-sm text-ink-soft">
             + Item manual
           </button>
+          </div>
         </div>
 
-        <div className="mt-6 flex items-center gap-2.5 border-t border-line pt-5 text-sm">
-          <span>BDI / margem:</span>
-          <input type="number" value={bdi} onChange={(e) => setBdi(Number(e.target.value))} className="font-mono-num w-14 border-b border-line bg-transparent py-1 text-center outline-none focus:border-brass" />
-          <span>%</span>
+        <div className="mb-7">
+          <div className="mb-3 text-xs font-bold uppercase tracking-wide text-brass">BDI / margem</div>
+          <div className="flex items-center gap-2.5 border border-line bg-white p-4 text-sm sm:p-5">
+            <input type="number" value={bdi} onChange={(e) => setBdi(Number(e.target.value))} className="font-mono-num w-16 border-b border-line bg-transparent py-1 text-center text-lg font-bold text-blueprint-deep outline-none focus:border-brass" />
+            <span className="text-ink-soft">%</span>
+          </div>
         </div>
 
-        {erro && <p className="mt-4 text-sm text-danger">{erro}</p>}
+        {erro && <p className="mb-4 text-sm text-danger">{erro}</p>}
 
-        <button onClick={salvar} disabled={salvando} className="mt-5 rounded-sm bg-blueprint-deep px-5 py-3 font-sans font-bold text-paper disabled:opacity-50">
+        <button onClick={salvar} disabled={salvando} className="rounded-sm bg-blueprint-deep px-5 py-3 font-sans font-bold text-paper disabled:opacity-50">
           {salvando ? 'Salvando…' : 'Salvar orçamento'}
         </button>
       </div>
