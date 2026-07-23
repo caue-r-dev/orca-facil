@@ -2,9 +2,11 @@ import { describe, it, expect } from 'vitest'
 import { calcularOrcamento, formatarMoeda } from './calc'
 import type { ItemOrcamento } from './types'
 
-const item = (categoria: 'material' | 'mao_obra', quantidade: number, valor_unit: number): ItemOrcamento => ({
-  id: 'x', orcamento_id: 'o', descricao: 'd', categoria, unidade: 'un', quantidade, valor_unit,
-})
+const item = (
+  categoria: 'material' | 'mao_obra',
+  quantidade: number,
+  valor_unit: number
+): Pick<ItemOrcamento, 'categoria' | 'quantidade' | 'valor_unit'> => ({ categoria, quantidade, valor_unit })
 
 describe('calcularOrcamento', () => {
   it('splits material and mao_obra subtotals and applies BDI on top of the sum', () => {

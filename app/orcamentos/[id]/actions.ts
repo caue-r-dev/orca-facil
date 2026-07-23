@@ -36,6 +36,9 @@ export async function atualizarOrcamento(orcamentoId: string, payload: Orcamento
       descricao: it.descricao,
       categoria: it.categoria,
       unidade: it.unidade,
+      modo_medicao: it.modo_medicao,
+      comprimento: it.comprimento,
+      altura: it.altura,
       quantidade: it.quantidade,
       valor_unit: it.valor_unit,
     }))

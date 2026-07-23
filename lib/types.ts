@@ -1,6 +1,7 @@
 export type SegmentoKey = 'eletrica' | 'hidraulica' | 'construcao' | 'drywall' | 'geral'
 export type Categoria = 'material' | 'mao_obra'
 export type OrcamentoStatus = 'rascunho' | 'enviado'
+export type ModoMedicao = 'manual' | 'metro_linear' | 'metro_quadrado'
 
 export interface Empresa {
   id: string
@@ -40,6 +41,9 @@ export interface ItemOrcamento {
   descricao: string
   categoria: Categoria
   unidade: string
+  modo_medicao: ModoMedicao
+  comprimento: number | null
+  altura: number | null
   quantidade: number
   valor_unit: number
 }
