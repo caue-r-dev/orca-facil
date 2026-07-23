@@ -21,16 +21,26 @@ interface OrcamentoPreviewProps {
   formaPagamento: string
   itens: PreviewItem[]
   bdi: number
+  // Só passados pela página pública/PDF (/o/[id]) — o builder interno
+  // nunca envia essas props, então a UI de dentro do sistema continua
+  // com a paleta padrão do protótipo para todo mundo.
+  logoUrl?: string | null
+  corPrimaria?: string
 }
 
 export function OrcamentoPreview(props: OrcamentoPreviewProps) {
   const { subtotalMaterial, subtotalMaoObra, valorBdi, total } = calcularOrcamento(props.itens, props.bdi)
+  const corDestaque = props.corPrimaria ? { color: props.corPrimaria } : undefined
 
   return (
     <div className="border border-line bg-white px-8 py-9 print:border-none print:shadow-none">
       <div className="mb-5 flex items-start justify-between">
         <div>
-          <div className="text-lg font-bold">{props.empresaNome || 'Sua Empresa'}</div>
+          {props.logoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={props.logoUrl} alt={props.empresaNome || 'Logo'} className="mb-2 h-10 w-auto object-contain" />
+          )}
+          <div className="text-lg font-bold" style={corDestaque}>{props.empresaNome || 'Sua Empresa'}</div>
           <div className="mt-0.5 text-xs text-ink-soft">{props.segmentoLabel}</div>
         </div>
         <div className="text-right text-xs text-ink-soft">
@@ -71,8 +81,8 @@ export function OrcamentoPreview(props: OrcamentoPreviewProps) {
         <div className="flex justify-between"><span className="font-sans">Materiais</span><span>{formatarMoeda(subtotalMaterial)}</span></div>
         <div className="flex justify-between"><span className="font-sans">Mão de obra</span><span>{formatarMoeda(subtotalMaoObra)}</span></div>
         <div className="flex justify-between"><span className="font-sans">BDI ({props.bdi || 0}%)</span><span>{formatarMoeda(valorBdi)}</span></div>
-        <div className="mt-1 flex justify-between border-t border-ink pt-2 text-lg font-bold">
-          <span className="font-sans">Total</span><span className="text-blueprint-deep">{formatarMoeda(total)}</span>
+        <div className="mt-1 flex justify-between border-t border-ink pt-2 text-lg font-bold" style={corDestaque}>
+          <span className="font-sans">Total</span><span className={props.corPrimaria ? '' : 'text-blueprint-deep'}>{formatarMoeda(total)}</span>
         </div>
       </div>
 

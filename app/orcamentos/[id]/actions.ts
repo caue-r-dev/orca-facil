@@ -48,6 +48,12 @@ export async function atualizarOrcamento(orcamentoId: string, payload: Orcamento
           pe_direito: a.peDireito,
           chapeamento: a.chapeamento,
           forro: a.forro,
+          valor_mao_obra_chapeamento: a.valorMaoObraChapeamento,
+          material_chapeamento: a.materialChapeamento,
+          valor_material_chapeamento: a.valorMaterialChapeamento,
+          valor_mao_obra_forro: a.valorMaoObraForro,
+          material_forro: a.materialForro,
+          valor_material_forro: a.valorMaterialForro,
         }))
       )
       .select('id')

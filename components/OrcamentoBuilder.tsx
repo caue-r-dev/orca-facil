@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { SEGMENTOS } from '@/lib/segmentos-seed'
+import { formatarMoeda } from '@/lib/calc'
 import { OrcamentoPreview } from './OrcamentoPreview'
 import type { AmbienteOrcamento, Categoria, ChapeamentoTipo, ItemBiblioteca, ItemOrcamento, ModoMedicao, OrigemAmbiente, SegmentoKey } from '@/lib/types'
 
@@ -25,6 +26,12 @@ interface AmbienteForm {
   peDireito: number
   chapeamento: ChapeamentoTipo
   forro: boolean
+  valorMaoObraChapeamento: number
+  materialChapeamento: boolean
+  valorMaterialChapeamento: number
+  valorMaoObraForro: number
+  materialForro: boolean
+  valorMaterialForro: number
 }
 
 export interface AmbientePayload extends AmbienteForm {
@@ -64,6 +71,19 @@ function calcularAreaChapeamento(a: AmbienteForm): number {
 
 function calcularAreaForro(a: AmbienteForm): number {
   return arredondar((Number(a.comprimento) || 0) * (Number(a.largura) || 0))
+}
+
+// Material "por conta do prestador" soma com a mão de obra num valor_unit
+// único — o item nunca é desmembrado em material + mão de obra na linha
+// do orçamento (mesmo padrão do sistema Belini).
+function calcularValorUnitChapeamento(a: AmbienteForm): number {
+  const material = a.materialChapeamento ? Number(a.valorMaterialChapeamento) || 0 : 0
+  return arredondar((Number(a.valorMaoObraChapeamento) || 0) + material)
+}
+
+function calcularValorUnitForro(a: AmbienteForm): number {
+  const material = a.materialForro ? Number(a.valorMaterialForro) || 0 : 0
+  return arredondar((Number(a.valorMaoObraForro) || 0) + material)
 }
 
 export interface OrcamentoBuilderPayload {
@@ -109,7 +129,7 @@ function itemChapeamentoDoAmbiente(a: AmbientePayload): ItemForm & { localId: nu
     comprimento: null,
     altura: null,
     quantidade: calcularAreaChapeamento(a),
-    valor_unit: 0,
+    valor_unit: calcularValorUnitChapeamento(a),
     ambienteLocalId: a.localId,
     origem_ambiente: 'chapeamento',
   }
@@ -125,7 +145,7 @@ function itemForroDoAmbiente(a: AmbientePayload): ItemForm & { localId: number }
     comprimento: null,
     altura: null,
     quantidade: calcularAreaForro(a),
-    valor_unit: 0,
+    valor_unit: calcularValorUnitForro(a),
     ambienteLocalId: a.localId,
     origem_ambiente: 'forro',
   }
@@ -141,6 +161,12 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
     peDireito: a.pe_direito,
     chapeamento: a.chapeamento,
     forro: a.forro,
+    valorMaoObraChapeamento: a.valor_mao_obra_chapeamento,
+    materialChapeamento: a.material_chapeamento,
+    valorMaterialChapeamento: a.valor_material_chapeamento,
+    valorMaoObraForro: a.valor_mao_obra_forro,
+    materialForro: a.material_forro,
+    valorMaterialForro: a.valor_material_forro,
   }))
   const ambienteLocalIdPorDbId = new Map(
     (valoresIniciais?.ambientes ?? []).map((a, i) => [a.id, ambientesIniciais[i].localId])
@@ -205,6 +231,12 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
       peDireito: 2.8,
       chapeamento: 'simples',
       forro: false,
+      valorMaoObraChapeamento: 0,
+      materialChapeamento: false,
+      valorMaterialChapeamento: 0,
+      valorMaoObraForro: 0,
+      materialForro: false,
+      valorMaterialForro: 0,
     }
     setAmbientes((prev) => [...prev, novo])
     setItens((prev) => [...prev, itemChapeamentoDoAmbiente(novo)])
@@ -221,10 +253,10 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
       let novos = prev.map((it) => {
         if (it.ambienteLocalId !== localId) return it
         if (it.origem_ambiente === 'chapeamento') {
-          return { ...it, descricao: `Chapeamento — ${novoAmbiente.nome}`, quantidade: calcularAreaChapeamento(novoAmbiente) }
+          return { ...it, descricao: `Chapeamento — ${novoAmbiente.nome}`, quantidade: calcularAreaChapeamento(novoAmbiente), valor_unit: calcularValorUnitChapeamento(novoAmbiente) }
         }
         if (it.origem_ambiente === 'forro') {
-          return { ...it, descricao: `Forro — ${novoAmbiente.nome}`, quantidade: calcularAreaForro(novoAmbiente) }
+          return { ...it, descricao: `Forro — ${novoAmbiente.nome}`, quantidade: calcularAreaForro(novoAmbiente), valor_unit: calcularValorUnitForro(novoAmbiente) }
         }
         return it
       })
@@ -321,55 +353,96 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
           </label>
         </div>
 
-        <div className="mb-5">
-          <div className="mb-3 text-xs font-bold uppercase tracking-wide text-brass">Ambientes (cômodos)</div>
-          <div className="flex flex-col gap-2.5">
-            {ambientes.map((a) => (
-              <div key={a.localId} className="border border-line bg-white px-3 py-2.5">
-                <div className="flex items-center justify-between gap-2">
-                  <input
-                    value={a.nome}
-                    onChange={(e) => atualizarAmbiente(a.localId, 'nome', e.target.value)}
-                    className="font-bold text-brass bg-transparent outline-none border-b border-transparent focus:border-brass"
-                  />
-                  <button onClick={() => removerAmbiente(a.localId)} className="text-danger">×</button>
-                </div>
+        {segmentoPadrao === 'drywall' && (
+          <div className="mb-5">
+            <div className="mb-3 text-xs font-bold uppercase tracking-wide text-brass">Ambientes (cômodos)</div>
+            <div className="flex flex-col gap-2.5">
+              {ambientes.map((a) => (
+                <div key={a.localId} className="border border-line bg-white px-3 py-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <input
+                      value={a.nome}
+                      onChange={(e) => atualizarAmbiente(a.localId, 'nome', e.target.value)}
+                      className="font-bold text-brass bg-transparent outline-none border-b border-transparent focus:border-brass"
+                    />
+                    <button onClick={() => removerAmbiente(a.localId)} className="text-danger">×</button>
+                  </div>
 
-                <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
-                  <label className="flex flex-col gap-1">Comprimento (m)
-                    <input type="number" value={a.comprimento} onChange={(e) => atualizarAmbiente(a.localId, 'comprimento', Number(e.target.value))} className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
-                  </label>
-                  <label className="flex flex-col gap-1">Largura (m)
-                    <input type="number" value={a.largura} onChange={(e) => atualizarAmbiente(a.localId, 'largura', Number(e.target.value))} className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
-                  </label>
-                  <label className="flex flex-col gap-1">Pé-direito (m)
-                    <input type="number" value={a.peDireito} onChange={(e) => atualizarAmbiente(a.localId, 'peDireito', Number(e.target.value))} className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
-                  </label>
-                </div>
+                  <div className="mt-2 grid grid-cols-1 gap-2 text-xs sm:grid-cols-3">
+                    <label className="flex flex-col gap-1">Comprimento (m)
+                      <input type="number" value={a.comprimento} onChange={(e) => atualizarAmbiente(a.localId, 'comprimento', Number(e.target.value))} className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+                    </label>
+                    <label className="flex flex-col gap-1">Largura (m)
+                      <input type="number" value={a.largura} onChange={(e) => atualizarAmbiente(a.localId, 'largura', Number(e.target.value))} className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+                    </label>
+                    <label className="flex flex-col gap-1">Pé-direito (m)
+                      <input type="number" value={a.peDireito} onChange={(e) => atualizarAmbiente(a.localId, 'peDireito', Number(e.target.value))} className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+                    </label>
+                  </div>
 
-                <div className="mt-2 flex flex-wrap items-center gap-4 text-xs">
-                  <label className="flex items-center gap-1.5">Chapeamento
-                    <select value={a.chapeamento} onChange={(e) => atualizarAmbiente(a.localId, 'chapeamento', e.target.value as ChapeamentoTipo)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass">
-                      <option value="simples">Simples</option>
-                      <option value="duplo">Duplo</option>
-                    </select>
-                  </label>
-                  <label className="flex items-center gap-1.5">
-                    <input type="checkbox" checked={a.forro} onChange={(e) => atualizarAmbiente(a.localId, 'forro', e.target.checked)} />
-                    Forro
-                  </label>
-                </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-4 text-xs">
+                    <label className="flex items-center gap-1.5">Chapeamento
+                      <select value={a.chapeamento} onChange={(e) => atualizarAmbiente(a.localId, 'chapeamento', e.target.value as ChapeamentoTipo)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass">
+                        <option value="simples">Simples</option>
+                        <option value="duplo">Duplo</option>
+                      </select>
+                    </label>
+                    <label className="flex items-center gap-1.5">
+                      <input type="checkbox" checked={a.forro} onChange={(e) => atualizarAmbiente(a.localId, 'forro', e.target.checked)} />
+                      Forro
+                    </label>
+                  </div>
 
-                <div className="mt-2 font-mono-num text-xs text-ink-soft">
-                  Chapeamento: {calcularAreaChapeamento(a).toFixed(2)} m²{a.forro && ` · Forro: ${calcularAreaForro(a).toFixed(2)} m²`}
+                  <div className="mt-2.5 flex flex-col gap-2 border-t border-dotted border-line pt-2.5 text-xs">
+                    <div className="text-ink-soft">Chapeamento — mão de obra e material</div>
+                    <div className="flex flex-wrap items-end gap-3">
+                      <label className="flex flex-col gap-1">Mão de obra (R$/m²)
+                        <input type="number" value={a.valorMaoObraChapeamento} onChange={(e) => atualizarAmbiente(a.localId, 'valorMaoObraChapeamento', Number(e.target.value))} className="font-mono-num w-28 border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+                      </label>
+                      <label className="flex items-center gap-1.5">
+                        <input type="checkbox" checked={a.materialChapeamento} onChange={(e) => atualizarAmbiente(a.localId, 'materialChapeamento', e.target.checked)} />
+                        Material por conta do prestador
+                      </label>
+                      {a.materialChapeamento && (
+                        <label className="flex flex-col gap-1">Material (R$/m²)
+                          <input type="number" value={a.valorMaterialChapeamento} onChange={(e) => atualizarAmbiente(a.localId, 'valorMaterialChapeamento', Number(e.target.value))} className="font-mono-num w-28 border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+                        </label>
+                      )}
+                    </div>
+                  </div>
+
+                  {a.forro && (
+                    <div className="mt-2.5 flex flex-col gap-2 border-t border-dotted border-line pt-2.5 text-xs">
+                      <div className="text-ink-soft">Forro — mão de obra e material</div>
+                      <div className="flex flex-wrap items-end gap-3">
+                        <label className="flex flex-col gap-1">Mão de obra (R$/m²)
+                          <input type="number" value={a.valorMaoObraForro} onChange={(e) => atualizarAmbiente(a.localId, 'valorMaoObraForro', Number(e.target.value))} className="font-mono-num w-28 border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+                        </label>
+                        <label className="flex items-center gap-1.5">
+                          <input type="checkbox" checked={a.materialForro} onChange={(e) => atualizarAmbiente(a.localId, 'materialForro', e.target.checked)} />
+                          Material por conta do prestador
+                        </label>
+                        {a.materialForro && (
+                          <label className="flex flex-col gap-1">Material (R$/m²)
+                            <input type="number" value={a.valorMaterialForro} onChange={(e) => atualizarAmbiente(a.localId, 'valorMaterialForro', Number(e.target.value))} className="font-mono-num w-28 border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+                          </label>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mt-2.5 font-mono-num text-xs text-ink-soft">
+                    Chapeamento: {calcularAreaChapeamento(a).toFixed(2)} m² × {formatarMoeda(calcularValorUnitChapeamento(a))}
+                    {a.forro && ` · Forro: ${calcularAreaForro(a).toFixed(2)} m² × ${formatarMoeda(calcularValorUnitForro(a))}`}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+            <button onClick={adicionarAmbiente} className="mt-3 rounded-sm border border-dashed border-line px-3.5 py-2 text-sm text-ink-soft">
+              + Adicionar ambiente
+            </button>
           </div>
-          <button onClick={adicionarAmbiente} className="mt-3 rounded-sm border border-dashed border-line px-3.5 py-2 text-sm text-ink-soft">
-            + Adicionar ambiente
-          </button>
-        </div>
+        )}
 
         {biblioteca.length > 0 && (
           <div className="mb-5">
@@ -404,7 +477,13 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
                       <option value="mao_obra">Mão de obra</option>
                     </select>
                     <input value={it.unidade} onChange={(e) => atualizarItem(it.localId, 'unidade', e.target.value)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
-                    <input type="number" value={it.valor_unit} onChange={(e) => atualizarItem(it.localId, 'valor_unit', Number(e.target.value))} className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+                    <input
+                      type="number"
+                      value={it.valor_unit}
+                      onChange={(e) => atualizarItem(it.localId, 'valor_unit', Number(e.target.value))}
+                      disabled={vinculadoAmbiente}
+                      className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass disabled:opacity-60"
+                    />
                     {vinculadoAmbiente ? (
                       <span className="text-center text-xs text-ink-soft" title="Gerado por um ambiente — edite ou remova o ambiente para alterar">🔗</span>
                     ) : (
@@ -414,7 +493,7 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
 
                   {vinculadoAmbiente ? (
                     <div className="mt-1.5 font-mono-num text-xs text-ink-soft">
-                      Gerado pelo ambiente · {it.origem_ambiente === 'chapeamento' ? 'Chapeamento' : 'Forro'} = {it.quantidade.toFixed(2)}{it.unidade}
+                      Gerado pelo ambiente · {it.origem_ambiente === 'chapeamento' ? 'Chapeamento' : 'Forro'} = {it.quantidade.toFixed(2)}{it.unidade} × {formatarMoeda(it.valor_unit)} (mão de obra + material, se marcado)
                     </div>
                   ) : (
                     <div className="mt-1.5 grid grid-cols-[1fr_1fr_1fr_1fr] items-center gap-2 text-xs">

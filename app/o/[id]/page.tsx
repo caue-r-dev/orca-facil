@@ -27,6 +27,8 @@ export default async function OrcamentoPublicoPage({ params }: { params: Promise
         formaPagamento={orcamento.forma_pagamento ?? ''}
         itens={itens ?? []}
         bdi={orcamento.bdi}
+        logoUrl={empresa?.logo_url ?? null}
+        corPrimaria={empresa?.cor_primaria}
       />
       <PrintButton />
     </main>

@@ -11,6 +11,7 @@ export interface Empresa {
   segmento_padrao: SegmentoKey
   telefone: string | null
   logo_url: string | null
+  cor_primaria: string
   bdi_padrao: number
   created_at: string
 }
@@ -61,6 +62,12 @@ export interface AmbienteOrcamento {
   pe_direito: number
   chapeamento: ChapeamentoTipo
   forro: boolean
+  valor_mao_obra_chapeamento: number
+  material_chapeamento: boolean
+  valor_material_chapeamento: number
+  valor_mao_obra_forro: number
+  material_forro: boolean
+  valor_material_forro: number
   created_at: string
 }
 
