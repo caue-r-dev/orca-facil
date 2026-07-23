@@ -60,13 +60,20 @@ function arredondar(n: number): number {
   return Math.round(n * 100) / 100
 }
 
-// Mirrors the Belini reference calculator: chapeamento área = perímetro
-// (2 × (comprimento + largura)) × pé-direito, doubled when chapeamento
-// is "duplo"; forro área = comprimento × largura (piso/teto do cômodo).
+// Mirrors the Belini reference calculator: perímetro = 2×(comprimento +
+// largura); parede = perímetro × pé-direito (uma face); chapeamento
+// dobra a parede quando é "2 lados"; forro/piso = comprimento × largura.
+function calcularPerimetro(a: AmbienteForm): number {
+  return arredondar(2 * ((Number(a.comprimento) || 0) + (Number(a.largura) || 0)))
+}
+
+function calcularAreaParede(a: AmbienteForm): number {
+  return arredondar(calcularPerimetro(a) * (Number(a.peDireito) || 0))
+}
+
 function calcularAreaChapeamento(a: AmbienteForm): number {
-  const perimetro = 2 * ((Number(a.comprimento) || 0) + (Number(a.largura) || 0))
-  const area = perimetro * (Number(a.peDireito) || 0)
-  return arredondar(a.chapeamento === 'duplo' ? area * 2 : area)
+  const parede = calcularAreaParede(a)
+  return arredondar(a.chapeamento === 'duplo' ? parede * 2 : parede)
 }
 
 function calcularAreaForro(a: AmbienteForm): number {
@@ -358,17 +365,20 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
             <div className="mb-3 text-xs font-bold uppercase tracking-wide text-brass">Ambientes (cômodos)</div>
             <div className="flex flex-col gap-2.5">
               {ambientes.map((a) => (
-                <div key={a.localId} className="border border-line bg-white px-3 py-2.5">
+                <div key={a.localId} className="border border-line bg-white px-4 py-3.5">
                   <div className="flex items-center justify-between gap-2">
-                    <input
-                      value={a.nome}
-                      onChange={(e) => atualizarAmbiente(a.localId, 'nome', e.target.value)}
-                      className="font-bold text-brass bg-transparent outline-none border-b border-transparent focus:border-brass"
-                    />
+                    <label className="flex-1 text-sm">
+                      <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-brass">Nome / descrição do ambiente</span>
+                      <input
+                        value={a.nome}
+                        onChange={(e) => atualizarAmbiente(a.localId, 'nome', e.target.value)}
+                        className="w-full border-b border-line bg-transparent py-1 text-base font-bold text-blueprint-deep outline-none focus:border-brass"
+                      />
+                    </label>
                     <button onClick={() => removerAmbiente(a.localId)} className="text-danger">×</button>
                   </div>
 
-                  <div className="mt-2 grid grid-cols-1 gap-2 text-xs sm:grid-cols-3">
+                  <div className="mt-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-3">
                     <label className="flex flex-col gap-1">Comprimento (m)
                       <input type="number" value={a.comprimento} onChange={(e) => atualizarAmbiente(a.localId, 'comprimento', Number(e.target.value))} className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
                     </label>
@@ -380,20 +390,52 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
                     </label>
                   </div>
 
-                  <div className="mt-2 flex flex-wrap items-center gap-4 text-xs">
-                    <label className="flex items-center gap-1.5">Chapeamento
-                      <select value={a.chapeamento} onChange={(e) => atualizarAmbiente(a.localId, 'chapeamento', e.target.value as ChapeamentoTipo)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass">
-                        <option value="simples">Simples</option>
-                        <option value="duplo">Duplo</option>
-                      </select>
-                    </label>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <div className="rounded-sm bg-paper px-2.5 py-1.5">
+                      <div className="text-[10px] text-ink-soft">Perímetro</div>
+                      <div className="font-mono-num text-sm font-bold">{calcularPerimetro(a).toFixed(2)} ML</div>
+                    </div>
+                    <div className="rounded-sm bg-paper px-2.5 py-1.5">
+                      <div className="text-[10px] text-ink-soft">Forro / Piso</div>
+                      <div className="font-mono-num text-sm font-bold">{calcularAreaForro(a).toFixed(2)} m²</div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-4 text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <span>Chapeamento:</span>
+                      <button
+                        type="button"
+                        onClick={() => atualizarAmbiente(a.localId, 'chapeamento', 'simples')}
+                        className={`rounded-sm border px-3 py-1.5 text-xs ${a.chapeamento === 'simples' ? 'border-brass bg-brass-soft font-bold' : 'border-line'}`}
+                      >
+                        1 lado
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => atualizarAmbiente(a.localId, 'chapeamento', 'duplo')}
+                        className={`rounded-sm border px-3 py-1.5 text-xs ${a.chapeamento === 'duplo' ? 'border-brass bg-brass-soft font-bold' : 'border-line'}`}
+                      >
+                        2 lados
+                      </button>
+                    </div>
                     <label className="flex items-center gap-1.5">
                       <input type="checkbox" checked={a.forro} onChange={(e) => atualizarAmbiente(a.localId, 'forro', e.target.checked)} />
                       Forro
                     </label>
                   </div>
 
-                  <div className="mt-2.5 flex flex-col gap-2 border-t border-dotted border-line pt-2.5 text-xs">
+                  <div className="mt-3 rounded-sm bg-paper px-3 py-2.5">
+                    <div className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-ink-soft">Total calculado</div>
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1 font-mono-num text-xs sm:grid-cols-4">
+                      <div><span className="text-ink-soft">Perímetro:</span> {calcularPerimetro(a).toFixed(2)} ML</div>
+                      <div><span className="text-ink-soft">Parede:</span> {calcularAreaParede(a).toFixed(2)} m²</div>
+                      <div><span className="text-ink-soft">Chapa{a.chapeamento === 'duplo' ? ' — 2 faces' : ''}:</span> {calcularAreaChapeamento(a).toFixed(2)} m²</div>
+                      <div><span className="text-ink-soft">Forro/Piso:</span> {calcularAreaForro(a).toFixed(2)} m²</div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex flex-col gap-2 border-t border-dotted border-line pt-3 text-xs">
                     <div className="text-ink-soft">Chapeamento — mão de obra e material</div>
                     <div className="flex flex-wrap items-end gap-3">
                       <label className="flex flex-col gap-1">Mão de obra (R$/m²)
@@ -409,10 +451,13 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
                         </label>
                       )}
                     </div>
+                    <div className="text-ink-soft">
+                      = {calcularAreaChapeamento(a).toFixed(2)} m² × {formatarMoeda(calcularValorUnitChapeamento(a))}
+                    </div>
                   </div>
 
                   {a.forro && (
-                    <div className="mt-2.5 flex flex-col gap-2 border-t border-dotted border-line pt-2.5 text-xs">
+                    <div className="mt-3 flex flex-col gap-2 border-t border-dotted border-line pt-3 text-xs">
                       <div className="text-ink-soft">Forro — mão de obra e material</div>
                       <div className="flex flex-wrap items-end gap-3">
                         <label className="flex flex-col gap-1">Mão de obra (R$/m²)
@@ -428,13 +473,11 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
                           </label>
                         )}
                       </div>
+                      <div className="text-ink-soft">
+                        = {calcularAreaForro(a).toFixed(2)} m² × {formatarMoeda(calcularValorUnitForro(a))}
+                      </div>
                     </div>
                   )}
-
-                  <div className="mt-2.5 font-mono-num text-xs text-ink-soft">
-                    Chapeamento: {calcularAreaChapeamento(a).toFixed(2)} m² × {formatarMoeda(calcularValorUnitChapeamento(a))}
-                    {a.forro && ` · Forro: ${calcularAreaForro(a).toFixed(2)} m² × ${formatarMoeda(calcularValorUnitForro(a))}`}
-                  </div>
                 </div>
               ))}
             </div>
@@ -465,13 +508,18 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
               return (
                 <div key={it.localId} className="border-b border-dotted border-line pb-2.5">
                   <div className="grid grid-cols-[2.2fr_0.9fr_0.7fr_0.9fr_auto] items-center gap-2 text-sm">
-                    <input
-                      value={it.descricao}
-                      onChange={(e) => atualizarItem(it.localId, 'descricao', e.target.value)}
-                      placeholder="Descrição"
-                      disabled={vinculadoAmbiente}
-                      className="border-b border-line bg-transparent py-1 outline-none focus:border-brass disabled:opacity-60"
-                    />
+                    {vinculadoAmbiente ? (
+                      <span className="truncate border-b border-transparent py-1 font-bold text-blueprint-deep" title={it.descricao}>
+                        {it.descricao}
+                      </span>
+                    ) : (
+                      <input
+                        value={it.descricao}
+                        onChange={(e) => atualizarItem(it.localId, 'descricao', e.target.value)}
+                        placeholder="Descrição"
+                        className="border-b border-line bg-transparent py-1 outline-none focus:border-brass"
+                      />
+                    )}
                     <select value={it.categoria} onChange={(e) => atualizarItem(it.localId, 'categoria', e.target.value as Categoria)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass">
                       <option value="material">Material</option>
                       <option value="mao_obra">Mão de obra</option>
