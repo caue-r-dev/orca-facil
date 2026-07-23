@@ -545,109 +545,133 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
           </div>
         )}
 
-        {biblioteca.length > 0 && (
+        {segmentoPadrao !== 'drywall' && (
           <div className="mb-7">
-            <div className="mb-3 text-xs font-bold uppercase tracking-wide text-brass">Itens da sua biblioteca</div>
-            <div className="flex flex-wrap gap-2 border border-line bg-white p-4 sm:p-5">
-              {biblioteca.map((item) => (
-                <button key={item.id} onClick={() => adicionarDaBiblioteca(item)} className="flex items-center gap-1 rounded-sm border border-line bg-paper px-3 py-1.5 text-xs">
-                  + {item.descricao} <span className="opacity-50">· R$ {item.valor_unit_padrao}/{item.unidade}</span>
+            <div className="mb-3 text-xs font-bold uppercase tracking-wide text-brass">Serviços do orçamento</div>
+            <div className="border border-line bg-white p-4 sm:p-5">
+              <div className="flex flex-col gap-4">
+                {itens.map((it) => (
+                  <div key={it.localId} className="border-b border-dotted border-line pb-2.5">
+                    <div className="grid grid-cols-[2.2fr_0.9fr_0.7fr_0.9fr_auto] items-center gap-2 text-sm">
+                      <input
+                        value={it.descricao}
+                        onChange={(e) => atualizarItem(it.localId, 'descricao', e.target.value)}
+                        placeholder="Descrição"
+                        className="border-b border-line bg-transparent py-1 outline-none focus:border-brass"
+                      />
+                      <select value={it.categoria} onChange={(e) => atualizarItem(it.localId, 'categoria', e.target.value as Categoria)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass">
+                        <option value="material">Material</option>
+                        <option value="mao_obra">Mão de obra</option>
+                      </select>
+                      <input value={it.unidade} onChange={(e) => atualizarItem(it.localId, 'unidade', e.target.value)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+                      <input
+                        type="number"
+                        value={it.valor_unit}
+                        onChange={(e) => atualizarItem(it.localId, 'valor_unit', Number(e.target.value))}
+                        className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass"
+                      />
+                      <button onClick={() => removerItem(it.localId)} className="text-danger">×</button>
+                    </div>
+
+                    <div className="mt-1.5 grid grid-cols-[1fr_1fr_1fr_1fr] items-center gap-2 text-xs">
+                      <select
+                        value={it.modo_medicao}
+                        onChange={(e) => definirModoMedicao(it.localId, e.target.value as ModoMedicao)}
+                        className="border-b border-line bg-transparent py-1 outline-none focus:border-brass"
+                      >
+                        {(Object.keys(MODO_MEDICAO_LABEL) as ModoMedicao[]).map((modo) => (
+                          <option key={modo} value={modo}>{MODO_MEDICAO_LABEL[modo]}</option>
+                        ))}
+                      </select>
+
+                      {it.modo_medicao === 'manual' && (
+                        <input
+                          type="number"
+                          value={it.quantidade}
+                          onChange={(e) => atualizarItem(it.localId, 'quantidade', Number(e.target.value))}
+                          placeholder="Quantidade"
+                          className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass"
+                        />
+                      )}
+
+                      {it.modo_medicao === 'metro_linear' && (
+                        <input
+                          type="number"
+                          value={it.comprimento ?? 0}
+                          onChange={(e) => atualizarMedida(it.localId, 'comprimento', Number(e.target.value))}
+                          placeholder="Comprimento (m)"
+                          className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass"
+                        />
+                      )}
+
+                      {it.modo_medicao === 'metro_quadrado' && (
+                        <>
+                          <input
+                            type="number"
+                            value={it.comprimento ?? 0}
+                            onChange={(e) => atualizarMedida(it.localId, 'comprimento', Number(e.target.value))}
+                            placeholder="Comprimento (m)"
+                            className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass"
+                          />
+                          <input
+                            type="number"
+                            value={it.altura ?? 0}
+                            onChange={(e) => atualizarMedida(it.localId, 'altura', Number(e.target.value))}
+                            placeholder="Altura (m)"
+                            className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass"
+                          />
+                        </>
+                      )}
+
+                      {it.modo_medicao !== 'manual' && (
+                        <span className="font-mono-num text-ink-soft">= {it.quantidade}{it.unidade}</span>
+                      )}
+                    </div>
+
+                    {it.categoria === 'material' && materiaisBiblioteca.length > 0 && (
+                      <label className="mt-1.5 flex flex-col gap-1 text-xs">Material (biblioteca) — opcional, preenche o valor
+                        <select
+                          value=""
+                          onChange={(e) => {
+                            const m = materiaisBiblioteca.find((mat) => mat.id === e.target.value)
+                            if (m) atualizarItem(it.localId, 'valor_unit', m.valor_unit_padrao)
+                          }}
+                          className="w-full max-w-xs border-b border-line bg-transparent py-1 outline-none focus:border-brass"
+                        >
+                          <option value="">Selecione um material</option>
+                          {materiaisBiblioteca.map((m) => (
+                            <option key={m.id} value={m.id}>{m.descricao} — {formatarMoeda(m.valor_unit_padrao)}/{m.unidade}</option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {biblioteca.length > 0 && (
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      const item = biblioteca.find((b) => b.id === e.target.value)
+                      if (item) adicionarDaBiblioteca(item)
+                    }}
+                    className="rounded-sm border border-dashed border-line bg-transparent px-3.5 py-2 text-sm text-ink-soft"
+                  >
+                    <option value="">+ Adicionar serviço</option>
+                    {biblioteca.map((item) => (
+                      <option key={item.id} value={item.id}>{item.descricao} · {formatarMoeda(item.valor_unit_padrao)}/{item.unidade}</option>
+                    ))}
+                  </select>
+                )}
+                <button onClick={adicionarItemVazio} className="rounded-sm border border-dashed border-line px-3.5 py-2 text-sm text-ink-soft">
+                  + Item manual
                 </button>
-              ))}
+              </div>
             </div>
           </div>
         )}
-
-        <div className="mb-7">
-          <div className="mb-3 text-xs font-bold uppercase tracking-wide text-brass">Itens do orçamento</div>
-          <p className="mb-3 text-xs text-ink-soft">Itens gerados por Ambiente ficam no card do próprio ambiente, acima. Aqui só itens avulsos (material extra, serviços fora do lote, etc.).</p>
-          <div className="border border-line bg-white p-4 sm:p-5">
-          <div className="flex flex-col gap-4">
-            {itens.filter((it) => it.ambienteLocalId === null).map((it) => (
-              <div key={it.localId} className="border-b border-dotted border-line pb-2.5">
-                <div className="grid grid-cols-[2.2fr_0.9fr_0.7fr_0.9fr_auto] items-center gap-2 text-sm">
-                  <input
-                    value={it.descricao}
-                    onChange={(e) => atualizarItem(it.localId, 'descricao', e.target.value)}
-                    placeholder="Descrição"
-                    className="border-b border-line bg-transparent py-1 outline-none focus:border-brass"
-                  />
-                  <select value={it.categoria} onChange={(e) => atualizarItem(it.localId, 'categoria', e.target.value as Categoria)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass">
-                    <option value="material">Material</option>
-                    <option value="mao_obra">Mão de obra</option>
-                  </select>
-                  <input value={it.unidade} onChange={(e) => atualizarItem(it.localId, 'unidade', e.target.value)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
-                  <input
-                    type="number"
-                    value={it.valor_unit}
-                    onChange={(e) => atualizarItem(it.localId, 'valor_unit', Number(e.target.value))}
-                    className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass"
-                  />
-                  <button onClick={() => removerItem(it.localId)} className="text-danger">×</button>
-                </div>
-
-                <div className="mt-1.5 grid grid-cols-[1fr_1fr_1fr_1fr] items-center gap-2 text-xs">
-                  <select
-                    value={it.modo_medicao}
-                    onChange={(e) => definirModoMedicao(it.localId, e.target.value as ModoMedicao)}
-                    className="border-b border-line bg-transparent py-1 outline-none focus:border-brass"
-                  >
-                    {(Object.keys(MODO_MEDICAO_LABEL) as ModoMedicao[]).map((modo) => (
-                      <option key={modo} value={modo}>{MODO_MEDICAO_LABEL[modo]}</option>
-                    ))}
-                  </select>
-
-                  {it.modo_medicao === 'manual' && (
-                    <input
-                      type="number"
-                      value={it.quantidade}
-                      onChange={(e) => atualizarItem(it.localId, 'quantidade', Number(e.target.value))}
-                      placeholder="Quantidade"
-                      className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass"
-                    />
-                  )}
-
-                  {it.modo_medicao === 'metro_linear' && (
-                    <input
-                      type="number"
-                      value={it.comprimento ?? 0}
-                      onChange={(e) => atualizarMedida(it.localId, 'comprimento', Number(e.target.value))}
-                      placeholder="Comprimento (m)"
-                      className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass"
-                    />
-                  )}
-
-                  {it.modo_medicao === 'metro_quadrado' && (
-                    <>
-                      <input
-                        type="number"
-                        value={it.comprimento ?? 0}
-                        onChange={(e) => atualizarMedida(it.localId, 'comprimento', Number(e.target.value))}
-                        placeholder="Comprimento (m)"
-                        className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass"
-                      />
-                      <input
-                        type="number"
-                        value={it.altura ?? 0}
-                        onChange={(e) => atualizarMedida(it.localId, 'altura', Number(e.target.value))}
-                        placeholder="Altura (m)"
-                        className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass"
-                      />
-                    </>
-                  )}
-
-                  {it.modo_medicao !== 'manual' && (
-                    <span className="font-mono-num text-ink-soft">= {it.quantidade}{it.unidade}</span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-          <button onClick={adicionarItemVazio} className="mt-4 rounded-sm border border-dashed border-line px-3.5 py-2 text-sm text-ink-soft">
-            + Item manual
-          </button>
-          </div>
-        </div>
 
         {erro && <p className="mb-4 text-sm text-danger">{erro}</p>}
 
