@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { calcularValorVendaMaterial } from '@/lib/calc'
 import type { Categoria } from '@/lib/types'
 
 export async function atualizarEmpresa(
@@ -57,15 +58,25 @@ export async function atualizarLogo(empresaId: string, formData: FormData): Prom
 
 export async function adicionarItemBiblioteca(
   empresaId: string,
-  item: { descricao: string; categoria: Categoria; unidade: string; valorUnitPadrao: number }
+  item: { descricao: string; categoria: Categoria; unidade: string; valorUnitPadrao?: number; custoAquisicao?: number; margemPercentual?: number }
 ): Promise<{ error?: string }> {
   const supabase = await createClient()
+
+  const ehMaterialComCusto = item.categoria === 'material' && item.custoAquisicao !== undefined
+  const custoAquisicao = ehMaterialComCusto ? item.custoAquisicao! : null
+  const margemPercentual = ehMaterialComCusto ? (item.margemPercentual ?? 0) : null
+  const valorUnitPadrao = ehMaterialComCusto
+    ? calcularValorVendaMaterial(custoAquisicao!, margemPercentual!)
+    : (item.valorUnitPadrao ?? 0)
+
   const { error } = await supabase.from('itens_biblioteca_empresa').insert({
     empresa_id: empresaId,
     descricao: item.descricao,
     categoria: item.categoria,
     unidade: item.unidade,
-    valor_unit_padrao: item.valorUnitPadrao,
+    valor_unit_padrao: valorUnitPadrao,
+    custo_aquisicao: custoAquisicao,
+    margem_percentual: margemPercentual,
   })
   if (error) return { error: error.message }
   revalidatePath('/configuracoes')

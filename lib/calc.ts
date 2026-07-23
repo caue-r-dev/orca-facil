@@ -27,3 +27,10 @@ export function calcularOrcamento(
 export function formatarMoeda(n: number): string {
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
+
+// Preço de venda de material = custo de aquisição + margem do prestador
+// em cima desse custo. Vale para qualquer segmento (não só drywall).
+export function calcularValorVendaMaterial(custoAquisicao: number, margemPercentual: number): number {
+  const valor = (Number(custoAquisicao) || 0) * (1 + (Number(margemPercentual) || 0) / 100)
+  return Math.round(valor * 100) / 100
+}

@@ -81,5 +81,7 @@ export interface ItemBiblioteca {
   categoria: Categoria
   unidade: string
   valor_unit_padrao: number
+  custo_aquisicao: number | null
+  margem_percentual: number | null
   created_at: string
 }

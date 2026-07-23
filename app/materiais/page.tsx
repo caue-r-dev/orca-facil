@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { adicionarItemBiblioteca, removerItemBiblioteca } from '../configuracoes/actions'
+import { CadastroMaterialForm } from './CadastroMaterialForm'
+import { formatarMoeda } from '@/lib/calc'
 import type { ItemBiblioteca } from '@/lib/types'
 
 export default async function MateriaisPage() {
@@ -25,36 +27,21 @@ export default async function MateriaisPage() {
       descricao: String(formData.get('descricao') ?? ''),
       categoria: 'material',
       unidade: String(formData.get('unidade') ?? 'm²'),
-      valorUnitPadrao: Number(formData.get('valorUnitPadrao') ?? 0),
+      custoAquisicao: Number(formData.get('custoAquisicao') ?? 0),
+      margemPercentual: Number(formData.get('margemPercentual') ?? 0),
     })
   }
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-12">
       <h1 className="text-2xl font-bold text-blueprint-deep">Materiais</h1>
-      <p className="mt-2 text-sm text-ink-soft">Materiais cadastrados aqui ficam disponíveis para escolher no card Composição de Custo de qualquer Ambiente.</p>
+      <p className="mt-2 text-sm text-ink-soft">
+        Materiais cadastrados aqui ficam disponíveis para escolher no card Composição de Custo de qualquer Ambiente,
+        e como item comum em orçamentos de qualquer segmento. O valor de venda é sempre custo de aquisição + sua margem.
+      </p>
 
       <div className="mt-8 border border-line bg-white p-4 sm:p-5">
-        <details className="rounded-sm border border-brass bg-brass-soft/30">
-          <summary className="cursor-pointer list-none px-4 py-3 font-sans text-sm font-bold text-blueprint-deep">
-            + Cadastrar material
-          </summary>
-          <form action={adicionarMaterial} className="grid grid-cols-1 gap-3 border-t border-brass px-4 py-4 text-sm sm:grid-cols-[2fr_1fr_1fr_auto] sm:items-end">
-            <label className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">Descrição</span>
-              <input name="descricao" required className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">Unidade</span>
-              <input name="unidade" defaultValue="m²" className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">Valor (R$)</span>
-              <input type="number" name="valorUnitPadrao" placeholder="0" className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
-            </label>
-            <button type="submit" className="rounded-sm bg-blueprint-deep px-4 py-2 text-sm font-bold text-paper">Salvar material</button>
-          </form>
-        </details>
+        <CadastroMaterialForm adicionarMaterial={adicionarMaterial} />
 
         <ul className="mt-4 flex flex-col gap-2">
           {(materiais ?? []).length === 0 && (
@@ -62,7 +49,14 @@ export default async function MateriaisPage() {
           )}
           {(materiais ?? []).map((item) => (
             <li key={item.id} className="flex items-center justify-between rounded-sm bg-paper px-3 py-2.5 text-sm">
-              <span>{item.descricao} <span className="text-ink-soft">· R$ {item.valor_unit_padrao}/{item.unidade}</span></span>
+              <span>
+                {item.descricao}{' '}
+                <span className="font-mono-num text-ink-soft">
+                  {item.custo_aquisicao !== null
+                    ? `· ${formatarMoeda(item.custo_aquisicao)} + ${item.margem_percentual}% = ${formatarMoeda(item.valor_unit_padrao)}/${item.unidade}`
+                    : `· ${formatarMoeda(item.valor_unit_padrao)}/${item.unidade}`}
+                </span>
+              </span>
               <form action={async () => { 'use server'; await removerItemBiblioteca(item.id) }}>
                 <button type="submit" className="text-danger">×</button>
               </form>
