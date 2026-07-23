@@ -26,6 +26,9 @@ interface OrcamentoPreviewProps {
   // com a paleta padrão do protótipo para todo mundo.
   logoUrl?: string | null
   corPrimaria?: string
+  // true só na página pública (/o/[id]): esconde o detalhamento
+  // Materiais/Mão de obra do cliente, mostrando só BDI e Total.
+  publico?: boolean
 }
 
 export function OrcamentoPreview(props: OrcamentoPreviewProps) {
@@ -78,8 +81,12 @@ export function OrcamentoPreview(props: OrcamentoPreviewProps) {
       )}
 
       <div className="mt-4 flex flex-col gap-1.5 font-mono-num text-sm">
-        <div className="flex justify-between"><span className="font-sans">Materiais</span><span>{formatarMoeda(subtotalMaterial)}</span></div>
-        <div className="flex justify-between"><span className="font-sans">Mão de obra</span><span>{formatarMoeda(subtotalMaoObra)}</span></div>
+        {!props.publico && (
+          <>
+            <div className="flex justify-between"><span className="font-sans">Materiais</span><span>{formatarMoeda(subtotalMaterial)}</span></div>
+            <div className="flex justify-between"><span className="font-sans">Mão de obra</span><span>{formatarMoeda(subtotalMaoObra)}</span></div>
+          </>
+        )}
         <div className="flex justify-between"><span className="font-sans">BDI ({props.bdi || 0}%)</span><span>{formatarMoeda(valorBdi)}</span></div>
         <div className="mt-1 flex justify-between border-t border-ink pt-2 text-lg font-bold" style={corDestaque}>
           <span className="font-sans">Total</span><span className={props.corPrimaria ? '' : 'text-blueprint-deep'}>{formatarMoeda(total)}</span>

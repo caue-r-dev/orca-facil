@@ -29,6 +29,7 @@ export default async function OrcamentoPublicoPage({ params }: { params: Promise
         bdi={orcamento.bdi}
         logoUrl={empresa?.logo_url ?? null}
         corPrimaria={empresa?.cor_primaria}
+        publico
       />
       <PrintButton />
     </main>
