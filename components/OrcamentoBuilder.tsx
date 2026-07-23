@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { SEGMENTOS } from '@/lib/segmentos-seed'
 import { formatarMoeda } from '@/lib/calc'
 import { OrcamentoPreview } from './OrcamentoPreview'
-import type { AmbienteOrcamento, Categoria, ChapeamentoTipo, ItemBiblioteca, ItemOrcamento, ModoMedicao, OrigemAmbiente, SegmentoKey } from '@/lib/types'
+import type { AmbienteOrcamento, Categoria, ItemBiblioteca, ItemOrcamento, MedidaAmbiente, ModoMedicao, SegmentoKey } from '@/lib/types'
 
 interface ItemForm {
   descricao: string
@@ -17,7 +17,9 @@ interface ItemForm {
   quantidade: number
   valor_unit: number
   ambienteLocalId: number | null
-  origem_ambiente: OrigemAmbiente | null
+  origem_ambiente: MedidaAmbiente | null
+  materialItemId: string | null
+  valorMaterial: number
 }
 
 interface AmbienteForm {
@@ -25,83 +27,49 @@ interface AmbienteForm {
   comprimento: number
   largura: number
   peDireito: number
-  chapeamento: ChapeamentoTipo
-  forro: boolean
-  valorMaoObraChapeamento: number
-  materialChapeamento: boolean
-  materialItemIdChapeamento: string | null
-  valorMaterialChapeamento: number
-  valorMaoObraForro: number
-  materialForro: boolean
-  materialItemIdForro: string | null
-  valorMaterialForro: number
 }
 
 export interface AmbientePayload extends AmbienteForm {
   localId: number
 }
 
-const MODO_MEDICAO_LABEL: Record<ModoMedicao, string> = {
-  manual: 'Manual',
-  metro_linear: 'Metro linear',
-  metro_quadrado: 'Metro quadrado',
-}
-
-function calcularQuantidade(modo: ModoMedicao, comprimento: number | null, altura: number | null, quantidadeManual: number): number {
-  if (modo === 'metro_linear') return Number(comprimento) || 0
-  if (modo === 'metro_quadrado') return (Number(comprimento) || 0) * (Number(altura) || 0)
-  return quantidadeManual
-}
-
-function modoMedicaoPadrao(unidade: string): ModoMedicao {
-  if (unidade === 'm') return 'metro_linear'
-  if (unidade === 'm²') return 'metro_quadrado'
-  return 'manual'
+const MEDIDA_LABEL: Record<MedidaAmbiente, string> = {
+  perimetro: 'Perímetro',
+  area: 'Área',
+  area_parede: 'Área de parede',
 }
 
 function arredondar(n: number): number {
   return Math.round(n * 100) / 100
 }
 
-// Mirrors the Belini reference calculator: perímetro = 2×(comprimento +
-// largura); parede = perímetro × pé-direito (uma face); chapeamento
-// dobra a parede quando é "2 lados"; forro/piso = comprimento × largura.
+// Segmentos que orçam por parede construída (drywall, alvenaria) usam
+// pé-direito e área de parede. Elétrica/hidráulica não orçam por
+// parede, só precisam de área/perímetro do ambiente.
+function segmentoTemParede(segmento: SegmentoKey): boolean {
+  return segmento === 'drywall' || segmento === 'construcao'
+}
+
 function calcularPerimetro(a: AmbienteForm): number {
   return arredondar(2 * ((Number(a.comprimento) || 0) + (Number(a.largura) || 0)))
+}
+
+function calcularArea(a: AmbienteForm): number {
+  return arredondar((Number(a.comprimento) || 0) * (Number(a.largura) || 0))
 }
 
 function calcularAreaParede(a: AmbienteForm): number {
   return arredondar(calcularPerimetro(a) * (Number(a.peDireito) || 0))
 }
 
-function calcularAreaChapeamento(a: AmbienteForm): number {
-  const parede = calcularAreaParede(a)
-  return arredondar(a.chapeamento === 'duplo' ? parede * 2 : parede)
+function medidasDisponiveis(segmento: SegmentoKey): MedidaAmbiente[] {
+  return segmentoTemParede(segmento) ? ['perimetro', 'area', 'area_parede'] : ['perimetro', 'area']
 }
 
-function calcularAreaForro(a: AmbienteForm): number {
-  return arredondar((Number(a.comprimento) || 0) * (Number(a.largura) || 0))
-}
-
-// Material "por conta do prestador" vem de um item de categoria Material
-// já cadastrado na biblioteca da empresa (valor_unit_padrao em R$/m²) e
-// soma com a mão de obra num valor_unit único — o item nunca é
-// desmembrado em material + mão de obra na linha do orçamento (mesmo
-// padrão do sistema Belini).
-function calcularValorUnitChapeamento(a: AmbienteForm): number {
-  const material = a.materialChapeamento ? (Number(a.valorMaterialChapeamento) || 0) : 0
-  return arredondar((Number(a.valorMaoObraChapeamento) || 0) + material)
-}
-
-function calcularValorUnitForro(a: AmbienteForm): number {
-  const material = a.materialForro ? (Number(a.valorMaterialForro) || 0) : 0
-  return arredondar((Number(a.valorMaoObraForro) || 0) + material)
-}
-
-function calcularTotalAmbiente(a: AmbienteForm): number {
-  const totalChapeamento = calcularAreaChapeamento(a) * calcularValorUnitChapeamento(a)
-  const totalForro = a.forro ? calcularAreaForro(a) * calcularValorUnitForro(a) : 0
-  return arredondar(totalChapeamento + totalForro)
+function calcularMedida(a: AmbienteForm, medida: MedidaAmbiente): number {
+  if (medida === 'perimetro') return calcularPerimetro(a)
+  if (medida === 'area_parede') return calcularAreaParede(a)
+  return calcularArea(a)
 }
 
 export interface OrcamentoBuilderPayload {
@@ -135,55 +103,16 @@ interface OrcamentoBuilderProps {
 let nextLocalId = 1
 let nextAmbienteLocalId = 1
 
-function itemChapeamentoDoAmbiente(a: AmbientePayload): ItemForm & { localId: number } {
-  return {
-    localId: nextLocalId++,
-    descricao: `Chapeamento — ${a.nome}`,
-    categoria: 'mao_obra',
-    unidade: 'm²',
-    modo_medicao: 'manual',
-    comprimento: null,
-    altura: null,
-    quantidade: calcularAreaChapeamento(a),
-    valor_unit: calcularValorUnitChapeamento(a),
-    ambienteLocalId: a.localId,
-    origem_ambiente: 'chapeamento',
-  }
-}
-
-function itemForroDoAmbiente(a: AmbientePayload): ItemForm & { localId: number } {
-  return {
-    localId: nextLocalId++,
-    descricao: `Forro — ${a.nome}`,
-    categoria: 'mao_obra',
-    unidade: 'm²',
-    modo_medicao: 'manual',
-    comprimento: null,
-    altura: null,
-    quantidade: calcularAreaForro(a),
-    valor_unit: calcularValorUnitForro(a),
-    ambienteLocalId: a.localId,
-    origem_ambiente: 'forro',
-  }
-}
-
 export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valoresIniciais, onSalvar }: OrcamentoBuilderProps) {
+  const temParede = segmentoTemParede(segmentoPadrao)
+  const medidas = medidasDisponiveis(segmentoPadrao)
+
   const ambientesIniciais: AmbientePayload[] = (valoresIniciais?.ambientes ?? []).map((a) => ({
     localId: nextAmbienteLocalId++,
     nome: a.nome,
     comprimento: a.comprimento,
     largura: a.largura,
     peDireito: a.pe_direito,
-    chapeamento: a.chapeamento,
-    forro: a.forro,
-    valorMaoObraChapeamento: a.valor_mao_obra_chapeamento,
-    materialChapeamento: a.material_chapeamento,
-    materialItemIdChapeamento: a.material_item_id_chapeamento,
-    valorMaterialChapeamento: a.valor_material_chapeamento,
-    valorMaoObraForro: a.valor_mao_obra_forro,
-    materialForro: a.material_forro,
-    materialItemIdForro: a.material_item_id_forro,
-    valorMaterialForro: a.valor_material_forro,
   }))
   const ambienteLocalIdPorDbId = new Map(
     (valoresIniciais?.ambientes ?? []).map((a, i) => [a.id, ambientesIniciais[i].localId])
@@ -195,8 +124,12 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
       ...it,
       localId: nextLocalId++,
       ambienteLocalId: it.ambiente_id ? ambienteLocalIdPorDbId.get(it.ambiente_id) ?? null : null,
+      origem_ambiente: it.origem_ambiente as MedidaAmbiente | null,
+      materialItemId: it.material_item_id,
+      valorMaterial: it.valor_material,
     }))
   )
+  const [picker, setPicker] = useState<Record<number, { servicoId: string; medida: MedidaAmbiente }>>({})
   const [clienteNome, setClienteNome] = useState(valoresIniciais?.clienteNome ?? '')
   const [clienteContato, setClienteContato] = useState(valoresIniciais?.clienteContato ?? '')
   const [obraEndereco, setObraEndereco] = useState(valoresIniciais?.obraEndereco ?? '')
@@ -206,87 +139,27 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
   const [erro, setErro] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
 
-  function adicionarDaBiblioteca(item: ItemBiblioteca) {
-    const modo = modoMedicaoPadrao(item.unidade)
-    const comprimento = modo === 'manual' ? null : 1
-    const altura = modo === 'metro_quadrado' ? 1 : null
-    setItens((prev) => [
-      ...prev,
-      {
-        localId: nextLocalId++,
-        descricao: item.descricao,
-        unidade: item.unidade,
-        categoria: item.categoria,
-        modo_medicao: modo,
-        comprimento,
-        altura,
-        quantidade: calcularQuantidade(modo, comprimento, altura, 1),
-        valor_unit: item.valor_unit_padrao,
-        ambienteLocalId: null,
-        origem_ambiente: null,
-      },
-    ])
-  }
-
-  function adicionarItemVazio() {
-    setItens((prev) => [
-      ...prev,
-      { localId: nextLocalId++, descricao: '', unidade: 'un', categoria: 'mao_obra', modo_medicao: 'manual', comprimento: null, altura: null, quantidade: 1, valor_unit: 0, ambienteLocalId: null, origem_ambiente: null },
-    ])
-  }
-
-  function atualizarItem<K extends keyof ItemForm>(localId: number, campo: K, valor: ItemForm[K]) {
-    setItens((prev) => prev.map((it) => (it.localId === localId ? { ...it, [campo]: valor } : it)))
-  }
-
   function adicionarAmbiente() {
     const novo: AmbientePayload = {
       localId: nextAmbienteLocalId++,
       nome: `Ambiente ${ambientes.length + 1}`,
       comprimento: 3,
       largura: 3,
-      peDireito: 2.8,
-      chapeamento: 'simples',
-      forro: false,
-      valorMaoObraChapeamento: 0,
-      materialChapeamento: false,
-      materialItemIdChapeamento: null,
-      valorMaterialChapeamento: 0,
-      valorMaoObraForro: 0,
-      materialForro: false,
-      materialItemIdForro: null,
-      valorMaterialForro: 0,
+      peDireito: temParede ? 2.8 : 0,
     }
     setAmbientes((prev) => [...prev, novo])
-    setItens((prev) => [...prev, itemChapeamentoDoAmbiente(novo)])
   }
 
   function atualizarAmbiente(localId: number, patch: Partial<AmbienteForm>) {
     const ambienteAtual = ambientes.find((a) => a.localId === localId)
     if (!ambienteAtual) return
     const novoAmbiente: AmbientePayload = { ...ambienteAtual, ...patch }
-
     setAmbientes((prev) => prev.map((a) => (a.localId === localId ? novoAmbiente : a)))
-
-    setItens((prev) => {
-      let novos = prev.map((it) => {
-        if (it.ambienteLocalId !== localId) return it
-        if (it.origem_ambiente === 'chapeamento') {
-          return { ...it, descricao: `Chapeamento — ${novoAmbiente.nome}`, quantidade: calcularAreaChapeamento(novoAmbiente), valor_unit: calcularValorUnitChapeamento(novoAmbiente) }
-        }
-        if (it.origem_ambiente === 'forro') {
-          return { ...it, descricao: `Forro — ${novoAmbiente.nome}`, quantidade: calcularAreaForro(novoAmbiente), valor_unit: calcularValorUnitForro(novoAmbiente) }
-        }
-        return it
-      })
-      const temForro = novos.some((it) => it.ambienteLocalId === localId && it.origem_ambiente === 'forro')
-      if (novoAmbiente.forro && !temForro) {
-        novos = [...novos, itemForroDoAmbiente(novoAmbiente)]
-      } else if (!novoAmbiente.forro && temForro) {
-        novos = novos.filter((it) => !(it.ambienteLocalId === localId && it.origem_ambiente === 'forro'))
-      }
-      return novos
-    })
+    setItens((prev) => prev.map((it) => {
+      if (it.ambienteLocalId !== localId || !it.origem_ambiente) return it
+      if (!medidas.includes(it.origem_ambiente)) return it
+      return { ...it, quantidade: calcularMedida(novoAmbiente, it.origem_ambiente) }
+    }))
   }
 
   function removerAmbiente(localId: number) {
@@ -294,20 +167,47 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
     setItens((prev) => prev.filter((it) => it.ambienteLocalId !== localId))
   }
 
-  function definirModoMedicao(localId: number, modo: ModoMedicao) {
-    setItens((prev) => prev.map((it) => {
-      if (it.localId !== localId) return it
-      const comprimento = modo === 'manual' ? null : (it.comprimento ?? 1)
-      const altura = modo === 'metro_quadrado' ? (it.altura ?? 1) : null
-      return { ...it, modo_medicao: modo, comprimento, altura, quantidade: calcularQuantidade(modo, comprimento, altura, it.quantidade) }
-    }))
+  function definirPickerServico(ambienteLocalId: number, servicoId: string) {
+    setPicker((prev) => ({ ...prev, [ambienteLocalId]: { medida: prev[ambienteLocalId]?.medida ?? medidas[0], servicoId } }))
   }
 
-  function atualizarMedida(localId: number, campo: 'comprimento' | 'altura', valor: number) {
+  function definirPickerMedida(ambienteLocalId: number, medida: MedidaAmbiente) {
+    setPicker((prev) => ({ ...prev, [ambienteLocalId]: { servicoId: prev[ambienteLocalId]?.servicoId ?? '', medida } }))
+  }
+
+  function adicionarServicoAoAmbiente(ambienteLocalId: number) {
+    const escolha = picker[ambienteLocalId]
+    const ambiente = ambientes.find((a) => a.localId === ambienteLocalId)
+    const servico = escolha ? biblioteca.find((b) => b.id === escolha.servicoId) : undefined
+    if (!ambiente || !servico || !escolha) return
+    setItens((prev) => [
+      ...prev,
+      {
+        localId: nextLocalId++,
+        descricao: `${servico.descricao} — ${ambiente.nome}`,
+        categoria: servico.categoria,
+        unidade: servico.unidade,
+        modo_medicao: 'manual',
+        comprimento: null,
+        altura: null,
+        quantidade: calcularMedida(ambiente, escolha.medida),
+        valor_unit: servico.valor_unit_padrao,
+        ambienteLocalId: ambiente.localId,
+        origem_ambiente: escolha.medida,
+        materialItemId: null,
+        valorMaterial: 0,
+      },
+    ])
+    setPicker((prev) => ({ ...prev, [ambienteLocalId]: { servicoId: '', medida: escolha.medida } }))
+  }
+
+  function atualizarMaterialItem(itemLocalId: number, materialId: string) {
     setItens((prev) => prev.map((it) => {
-      if (it.localId !== localId) return it
-      const atualizado = { ...it, [campo]: valor }
-      return { ...atualizado, quantidade: calcularQuantidade(atualizado.modo_medicao, atualizado.comprimento, atualizado.altura, atualizado.quantidade) }
+      if (it.localId !== itemLocalId) return it
+      const base = it.valor_unit - it.valorMaterial
+      const material = materialId ? materiaisBiblioteca.find((m) => m.id === materialId) : undefined
+      const valorMaterial = material ? material.valor_unit_padrao : 0
+      return { ...it, materialItemId: material ? material.id : null, valorMaterial, valor_unit: arredondar(base + valorMaterial) }
     }))
   }
 
@@ -322,7 +222,7 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
       return
     }
     if (itens.length === 0) {
-      setErro('Adicione ao menos um item ao orçamento.')
+      setErro('Adicione ao menos um serviço a um ambiente.')
       return
     }
     setSalvando(true)
@@ -370,11 +270,15 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
           </div>
         </div>
 
-        {segmentoPadrao === 'drywall' && (
-          <div className="mb-5">
-            <div className="mb-3 text-xs font-bold uppercase tracking-wide text-brass">Ambientes (cômodos)</div>
-            <div className="flex flex-col gap-2.5">
-              {ambientes.map((a) => (
+        <div className="mb-5">
+          <div className="mb-3 text-xs font-bold uppercase tracking-wide text-brass">Ambientes</div>
+          <div className="flex flex-col gap-2.5">
+            {ambientes.map((a) => {
+              const itensDoAmbiente = itens.filter((it) => it.ambienteLocalId === a.localId)
+              const totalAmbiente = itensDoAmbiente.reduce((soma, it) => soma + it.quantidade * it.valor_unit, 0)
+              const escolha = picker[a.localId] ?? { servicoId: '', medida: medidas[0] }
+
+              return (
                 <div key={a.localId} className="flex flex-col gap-5 border border-line bg-white p-4 sm:p-5">
 
                   {/* Bloco 1 — identificação */}
@@ -391,287 +295,128 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
                       <button onClick={() => removerAmbiente(a.localId)} className="mt-5 text-danger">×</button>
                     </div>
 
-                    <div className="mt-3 grid grid-cols-1 gap-3 text-xs sm:grid-cols-3">
+                    <div className={`mt-3 grid grid-cols-1 gap-3 text-xs ${temParede ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
                       <label className="flex flex-col gap-1">Comprimento (m)
                         <input type="number" value={a.comprimento} onChange={(e) => atualizarAmbiente(a.localId, { comprimento: Number(e.target.value) })} className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
                       </label>
                       <label className="flex flex-col gap-1">Largura (m)
                         <input type="number" value={a.largura} onChange={(e) => atualizarAmbiente(a.localId, { largura: Number(e.target.value) })} className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
                       </label>
-                      <label className="flex flex-col gap-1">Pé-direito (m)
-                        <input type="number" value={a.peDireito} onChange={(e) => atualizarAmbiente(a.localId, { peDireito: Number(e.target.value) })} className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
-                      </label>
-                    </div>
-
-                    <div className="mt-4 flex flex-wrap items-center gap-4 text-xs">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-ink-soft">Chapeamento:</span>
-                        <button
-                          type="button"
-                          onClick={() => atualizarAmbiente(a.localId, { chapeamento: 'simples' })}
-                          className={`rounded-sm border px-3 py-1.5 text-xs ${a.chapeamento === 'simples' ? 'border-brass bg-brass-soft font-bold' : 'border-line'}`}
-                        >
-                          1 lado
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => atualizarAmbiente(a.localId, { chapeamento: 'duplo' })}
-                          className={`rounded-sm border px-3 py-1.5 text-xs ${a.chapeamento === 'duplo' ? 'border-brass bg-brass-soft font-bold' : 'border-line'}`}
-                        >
-                          2 lados
-                        </button>
-                      </div>
-                      <label className="flex items-center gap-1.5">
-                        <input type="checkbox" checked={a.forro} onChange={(e) => atualizarAmbiente(a.localId, { forro: e.target.checked })} />
-                        Forro
-                      </label>
+                      {temParede && (
+                        <label className="flex flex-col gap-1">Pé-direito (m)
+                          <input type="number" value={a.peDireito} onChange={(e) => atualizarAmbiente(a.localId, { peDireito: Number(e.target.value) })} className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+                        </label>
+                      )}
                     </div>
                   </div>
 
                   {/* Bloco 2 — métricas calculadas */}
                   <div className="border-t border-line pt-4">
                     <div className="mb-2.5 text-[10px] font-bold uppercase tracking-wide text-ink-soft">Métricas calculadas</div>
-                    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                    <div className={`grid grid-cols-2 gap-2.5 ${temParede ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
                       <div className="rounded-sm bg-paper px-3 py-2.5">
                         <div className="text-[10px] uppercase tracking-wide text-ink-soft">Perímetro</div>
                         <div className="font-mono-num text-lg font-bold text-blueprint-deep">{calcularPerimetro(a).toFixed(2)}<span className="ml-1 text-xs font-normal text-ink-soft">ML</span></div>
                       </div>
                       <div className="rounded-sm bg-paper px-3 py-2.5">
-                        <div className="text-[10px] uppercase tracking-wide text-ink-soft">Parede</div>
-                        <div className="font-mono-num text-lg font-bold text-blueprint-deep">{calcularAreaParede(a).toFixed(2)}<span className="ml-1 text-xs font-normal text-ink-soft">m²</span></div>
+                        <div className="text-[10px] uppercase tracking-wide text-ink-soft">Área</div>
+                        <div className="font-mono-num text-lg font-bold text-blueprint-deep">{calcularArea(a).toFixed(2)}<span className="ml-1 text-xs font-normal text-ink-soft">m²</span></div>
                       </div>
-                      <div className="rounded-sm bg-paper px-3 py-2.5">
-                        <div className="text-[10px] uppercase tracking-wide text-ink-soft">Chapeamento <span className="text-brass">({a.chapeamento === 'duplo' ? '2 lados' : '1 lado'})</span></div>
-                        <div className="font-mono-num text-lg font-bold text-blueprint-deep">{calcularAreaChapeamento(a).toFixed(2)}<span className="ml-1 text-xs font-normal text-ink-soft">m²</span></div>
-                      </div>
-                      <div className={`rounded-sm px-3 py-2.5 ${a.forro ? 'bg-paper' : 'bg-paper opacity-50'}`}>
-                        <div className="text-[10px] uppercase tracking-wide text-ink-soft">Forro / Piso</div>
-                        <div className="font-mono-num text-lg font-bold text-blueprint-deep">{calcularAreaForro(a).toFixed(2)}<span className="ml-1 text-xs font-normal text-ink-soft">m²</span></div>
-                      </div>
+                      {temParede && (
+                        <div className="rounded-sm bg-paper px-3 py-2.5">
+                          <div className="text-[10px] uppercase tracking-wide text-ink-soft">Área de parede</div>
+                          <div className="font-mono-num text-lg font-bold text-blueprint-deep">{calcularAreaParede(a).toFixed(2)}<span className="ml-1 text-xs font-normal text-ink-soft">m²</span></div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  {/* Bloco 3 — composição de custo */}
+                  {/* Bloco 3 — serviços do ambiente */}
                   <div className="border-t border-line pt-4">
-                    <div className="mb-2.5 text-[10px] font-bold uppercase tracking-wide text-ink-soft">Composição de custo</div>
+                    <div className="mb-2.5 text-[10px] font-bold uppercase tracking-wide text-ink-soft">Serviços do ambiente</div>
 
-                    <div className="rounded-sm bg-paper p-3.5">
-                      <div className="mb-2 text-xs font-bold text-blueprint-deep">Chapeamento</div>
-                      <div className="flex flex-wrap items-end gap-3 text-xs">
-                        <label className="flex flex-col gap-1">Mão de obra (R$/m²)
-                          <input type="number" value={a.valorMaoObraChapeamento} onChange={(e) => atualizarAmbiente(a.localId, { valorMaoObraChapeamento: Number(e.target.value) })} className="font-mono-num w-28 border-b border-line bg-white py-1 outline-none focus:border-brass" />
-                        </label>
-                        <label className="flex items-center gap-1.5">
-                          <input type="checkbox" checked={a.materialChapeamento} onChange={(e) => atualizarAmbiente(a.localId, { materialChapeamento: e.target.checked })} />
-                          Material por conta do prestador
-                        </label>
+                    {itensDoAmbiente.length > 0 && (
+                      <div className="mb-3 flex flex-col gap-3">
+                        {itensDoAmbiente.map((it) => (
+                          <div key={it.localId} className="rounded-sm bg-paper p-3.5">
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <div className="text-xs font-bold text-blueprint-deep">{it.descricao}</div>
+                                <div className="mt-1 font-mono-num text-xs text-ink-soft">
+                                  {it.origem_ambiente && MEDIDA_LABEL[it.origem_ambiente] ? MEDIDA_LABEL[it.origem_ambiente] : 'Manual'} · {it.quantidade.toFixed(2)}{it.unidade} × {formatarMoeda(it.valor_unit)} = {formatarMoeda(it.quantidade * it.valor_unit)}
+                                </div>
+                              </div>
+                              <button onClick={() => removerItem(it.localId)} className="text-danger">×</button>
+                            </div>
+                            {materiaisBiblioteca.length > 0 && (
+                              <label className="mt-2 flex flex-col gap-1 text-xs">Material (biblioteca) — opcional, soma ao valor
+                                <select
+                                  value={it.materialItemId ?? ''}
+                                  onChange={(e) => atualizarMaterialItem(it.localId, e.target.value)}
+                                  className="w-full max-w-xs border-b border-line bg-white py-1 outline-none focus:border-brass"
+                                >
+                                  <option value="">Nenhum</option>
+                                  {materiaisBiblioteca.map((m) => (
+                                    <option key={m.id} value={m.id}>{m.descricao} — {formatarMoeda(m.valor_unit_padrao)}/{m.unidade}</option>
+                                  ))}
+                                </select>
+                              </label>
+                            )}
+                          </div>
+                        ))}
                       </div>
-                      {a.materialChapeamento && (
-                        materiaisBiblioteca.length === 0 ? (
-                          <p className="mt-2.5 text-xs text-ink-soft">Nenhum material cadastrado ainda. <Link href="/materiais" className="font-bold text-brass underline">Cadastre em Materiais</Link> primeiro.</p>
-                        ) : (
-                          <label className="mt-2.5 flex flex-col gap-1 text-xs">Material (biblioteca)
-                            <select
-                              value={a.materialItemIdChapeamento ?? ''}
-                              onChange={(e) => {
-                                const item = materiaisBiblioteca.find((m) => m.id === e.target.value)
-                                atualizarAmbiente(a.localId, { materialItemIdChapeamento: item?.id ?? null, valorMaterialChapeamento: item?.valor_unit_padrao ?? 0 })
-                              }}
-                              className="w-full max-w-xs border-b border-line bg-white py-1 outline-none focus:border-brass"
-                            >
-                              <option value="">Selecione um material</option>
-                              {materiaisBiblioteca.map((m) => (
-                                <option key={m.id} value={m.id}>{m.descricao} — {formatarMoeda(m.valor_unit_padrao)}/m²</option>
-                              ))}
-                            </select>
-                          </label>
-                        )
-                      )}
-                      <div className="mt-2 font-mono-num text-xs text-ink-soft">
-                        Valor unitário: {formatarMoeda(calcularValorUnitChapeamento(a))}/m² · Total: {formatarMoeda(calcularAreaChapeamento(a) * calcularValorUnitChapeamento(a))}
-                      </div>
-                    </div>
+                    )}
 
-                    {a.forro && (
-                      <div className="mt-3 rounded-sm bg-paper p-3.5">
-                        <div className="mb-2 text-xs font-bold text-blueprint-deep">Forro</div>
-                        <div className="flex flex-wrap items-end gap-3 text-xs">
-                          <label className="flex flex-col gap-1">Mão de obra (R$/m²)
-                            <input type="number" value={a.valorMaoObraForro} onChange={(e) => atualizarAmbiente(a.localId, { valorMaoObraForro: Number(e.target.value) })} className="font-mono-num w-28 border-b border-line bg-white py-1 outline-none focus:border-brass" />
-                          </label>
-                          <label className="flex items-center gap-1.5">
-                            <input type="checkbox" checked={a.materialForro} onChange={(e) => atualizarAmbiente(a.localId, { materialForro: e.target.checked })} />
-                            Material por conta do prestador
-                          </label>
-                        </div>
-                        {a.materialForro && (
-                          materiaisBiblioteca.length === 0 ? (
-                            <p className="mt-2.5 text-xs text-ink-soft">Nenhum material cadastrado ainda. <Link href="/materiais" className="font-bold text-brass underline">Cadastre em Materiais</Link> primeiro.</p>
-                          ) : (
-                            <label className="mt-2.5 flex flex-col gap-1 text-xs">Material (biblioteca)
-                              <select
-                                value={a.materialItemIdForro ?? ''}
-                                onChange={(e) => {
-                                  const item = materiaisBiblioteca.find((m) => m.id === e.target.value)
-                                  atualizarAmbiente(a.localId, { materialItemIdForro: item?.id ?? null, valorMaterialForro: item?.valor_unit_padrao ?? 0 })
-                                }}
-                                className="w-full max-w-xs border-b border-line bg-white py-1 outline-none focus:border-brass"
-                              >
-                                <option value="">Selecione um material</option>
-                                {materiaisBiblioteca.map((m) => (
-                                  <option key={m.id} value={m.id}>{m.descricao} — {formatarMoeda(m.valor_unit_padrao)}/m²</option>
-                                ))}
-                              </select>
-                            </label>
-                          )
-                        )}
-                        <div className="mt-2 font-mono-num text-xs text-ink-soft">
-                          Valor unitário: {formatarMoeda(calcularValorUnitForro(a))}/m² · Total: {formatarMoeda(calcularAreaForro(a) * calcularValorUnitForro(a))}
-                        </div>
+                    {biblioteca.length === 0 ? (
+                      <p className="text-xs text-ink-soft">Nenhum serviço cadastrado ainda. <Link href="/configuracoes" className="font-bold text-brass underline">Cadastre em Configurações</Link> primeiro.</p>
+                    ) : (
+                      <div className="flex flex-wrap items-end gap-2">
+                        <label className="flex flex-1 flex-col gap-1 text-xs" style={{ minWidth: '160px' }}>Serviço
+                          <select
+                            value={escolha.servicoId}
+                            onChange={(e) => definirPickerServico(a.localId, e.target.value)}
+                            className="border-b border-line bg-white py-1 outline-none focus:border-brass"
+                          >
+                            <option value="">Selecione um serviço</option>
+                            {biblioteca.map((s) => (
+                              <option key={s.id} value={s.id}>{s.descricao} · {formatarMoeda(s.valor_unit_padrao)}/{s.unidade}</option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="flex flex-col gap-1 text-xs">Medida
+                          <select
+                            value={escolha.medida}
+                            onChange={(e) => definirPickerMedida(a.localId, e.target.value as MedidaAmbiente)}
+                            className="border-b border-line bg-white py-1 outline-none focus:border-brass"
+                          >
+                            {medidas.map((m) => (
+                              <option key={m} value={m}>{MEDIDA_LABEL[m]}</option>
+                            ))}
+                          </select>
+                        </label>
+                        <button
+                          onClick={() => adicionarServicoAoAmbiente(a.localId)}
+                          disabled={!escolha.servicoId}
+                          className="rounded-sm border border-dashed border-line px-3.5 py-2 text-sm text-ink-soft disabled:opacity-50"
+                        >
+                          + Adicionar serviço ao ambiente
+                        </button>
                       </div>
                     )}
 
                     <div className="mt-3 flex items-center justify-between rounded-sm bg-blueprint-deep px-4 py-3">
                       <span className="text-xs font-bold uppercase tracking-wide text-paper">Total do ambiente</span>
-                      <span className="font-mono-num text-lg font-bold text-paper">{formatarMoeda(calcularTotalAmbiente(a))}</span>
+                      <span className="font-mono-num text-lg font-bold text-paper">{formatarMoeda(totalAmbiente)}</span>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-            <button onClick={adicionarAmbiente} className="mt-3 rounded-sm border border-dashed border-line px-3.5 py-2 text-sm text-ink-soft">
-              + Adicionar ambiente
-            </button>
+              )
+            })}
           </div>
-        )}
-
-        {segmentoPadrao !== 'drywall' && (
-          <div className="mb-7">
-            <div className="mb-3 text-xs font-bold uppercase tracking-wide text-brass">Serviços do orçamento</div>
-            <div className="border border-line bg-white p-4 sm:p-5">
-              <div className="flex flex-col gap-4">
-                {itens.map((it) => (
-                  <div key={it.localId} className="border-b border-dotted border-line pb-2.5">
-                    <div className="grid grid-cols-[2.2fr_0.9fr_0.7fr_0.9fr_auto] items-center gap-2 text-sm">
-                      <input
-                        value={it.descricao}
-                        onChange={(e) => atualizarItem(it.localId, 'descricao', e.target.value)}
-                        placeholder="Descrição"
-                        className="border-b border-line bg-transparent py-1 outline-none focus:border-brass"
-                      />
-                      <select value={it.categoria} onChange={(e) => atualizarItem(it.localId, 'categoria', e.target.value as Categoria)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass">
-                        <option value="material">Material</option>
-                        <option value="mao_obra">Mão de obra</option>
-                      </select>
-                      <input value={it.unidade} onChange={(e) => atualizarItem(it.localId, 'unidade', e.target.value)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
-                      <input
-                        type="number"
-                        value={it.valor_unit}
-                        onChange={(e) => atualizarItem(it.localId, 'valor_unit', Number(e.target.value))}
-                        className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass"
-                      />
-                      <button onClick={() => removerItem(it.localId)} className="text-danger">×</button>
-                    </div>
-
-                    <div className="mt-1.5 grid grid-cols-[1fr_1fr_1fr_1fr] items-center gap-2 text-xs">
-                      <select
-                        value={it.modo_medicao}
-                        onChange={(e) => definirModoMedicao(it.localId, e.target.value as ModoMedicao)}
-                        className="border-b border-line bg-transparent py-1 outline-none focus:border-brass"
-                      >
-                        {(Object.keys(MODO_MEDICAO_LABEL) as ModoMedicao[]).map((modo) => (
-                          <option key={modo} value={modo}>{MODO_MEDICAO_LABEL[modo]}</option>
-                        ))}
-                      </select>
-
-                      {it.modo_medicao === 'manual' && (
-                        <input
-                          type="number"
-                          value={it.quantidade}
-                          onChange={(e) => atualizarItem(it.localId, 'quantidade', Number(e.target.value))}
-                          placeholder="Quantidade"
-                          className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass"
-                        />
-                      )}
-
-                      {it.modo_medicao === 'metro_linear' && (
-                        <input
-                          type="number"
-                          value={it.comprimento ?? 0}
-                          onChange={(e) => atualizarMedida(it.localId, 'comprimento', Number(e.target.value))}
-                          placeholder="Comprimento (m)"
-                          className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass"
-                        />
-                      )}
-
-                      {it.modo_medicao === 'metro_quadrado' && (
-                        <>
-                          <input
-                            type="number"
-                            value={it.comprimento ?? 0}
-                            onChange={(e) => atualizarMedida(it.localId, 'comprimento', Number(e.target.value))}
-                            placeholder="Comprimento (m)"
-                            className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass"
-                          />
-                          <input
-                            type="number"
-                            value={it.altura ?? 0}
-                            onChange={(e) => atualizarMedida(it.localId, 'altura', Number(e.target.value))}
-                            placeholder="Altura (m)"
-                            className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass"
-                          />
-                        </>
-                      )}
-
-                      {it.modo_medicao !== 'manual' && (
-                        <span className="font-mono-num text-ink-soft">= {it.quantidade}{it.unidade}</span>
-                      )}
-                    </div>
-
-                    {it.categoria === 'material' && materiaisBiblioteca.length > 0 && (
-                      <label className="mt-1.5 flex flex-col gap-1 text-xs">Material (biblioteca) — opcional, preenche o valor
-                        <select
-                          value=""
-                          onChange={(e) => {
-                            const m = materiaisBiblioteca.find((mat) => mat.id === e.target.value)
-                            if (m) atualizarItem(it.localId, 'valor_unit', m.valor_unit_padrao)
-                          }}
-                          className="w-full max-w-xs border-b border-line bg-transparent py-1 outline-none focus:border-brass"
-                        >
-                          <option value="">Selecione um material</option>
-                          {materiaisBiblioteca.map((m) => (
-                            <option key={m.id} value={m.id}>{m.descricao} — {formatarMoeda(m.valor_unit_padrao)}/{m.unidade}</option>
-                          ))}
-                        </select>
-                      </label>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                {biblioteca.length > 0 && (
-                  <select
-                    value=""
-                    onChange={(e) => {
-                      const item = biblioteca.find((b) => b.id === e.target.value)
-                      if (item) adicionarDaBiblioteca(item)
-                    }}
-                    className="rounded-sm border border-dashed border-line bg-transparent px-3.5 py-2 text-sm text-ink-soft"
-                  >
-                    <option value="">+ Adicionar serviço</option>
-                    {biblioteca.map((item) => (
-                      <option key={item.id} value={item.id}>{item.descricao} · {formatarMoeda(item.valor_unit_padrao)}/{item.unidade}</option>
-                    ))}
-                  </select>
-                )}
-                <button onClick={adicionarItemVazio} className="rounded-sm border border-dashed border-line px-3.5 py-2 text-sm text-ink-soft">
-                  + Item manual
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+          <button onClick={adicionarAmbiente} className="mt-3 rounded-sm border border-dashed border-line px-3.5 py-2 text-sm text-ink-soft">
+            + Adicionar ambiente
+          </button>
+        </div>
 
         {erro && <p className="mb-4 text-sm text-danger">{erro}</p>}
 

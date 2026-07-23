@@ -2,8 +2,10 @@ export type SegmentoKey = 'eletrica' | 'hidraulica' | 'construcao' | 'drywall' |
 export type Categoria = 'material' | 'mao_obra'
 export type OrcamentoStatus = 'rascunho' | 'enviado'
 export type ModoMedicao = 'manual' | 'metro_linear' | 'metro_quadrado'
-export type ChapeamentoTipo = 'simples' | 'duplo'
-export type OrigemAmbiente = 'chapeamento' | 'forro'
+export type MedidaAmbiente = 'perimetro' | 'area' | 'area_parede'
+// 'chapeamento'/'forro' são valores legados (pré Ambiente universal),
+// ainda válidos no banco pra não quebrar orçamentos antigos.
+export type OrigemAmbiente = MedidaAmbiente | 'chapeamento' | 'forro'
 
 export interface Empresa {
   id: string
@@ -50,6 +52,8 @@ export interface ItemOrcamento {
   valor_unit: number
   ambiente_id: string | null
   origem_ambiente: OrigemAmbiente | null
+  material_item_id: string | null
+  valor_material: number
 }
 
 export interface AmbienteOrcamento {
@@ -59,16 +63,6 @@ export interface AmbienteOrcamento {
   comprimento: number
   largura: number
   pe_direito: number
-  chapeamento: ChapeamentoTipo
-  forro: boolean
-  valor_mao_obra_chapeamento: number
-  material_chapeamento: boolean
-  material_item_id_chapeamento: string | null
-  valor_material_chapeamento: number
-  valor_mao_obra_forro: number
-  material_forro: boolean
-  material_item_id_forro: string | null
-  valor_material_forro: number
   created_at: string
 }
 

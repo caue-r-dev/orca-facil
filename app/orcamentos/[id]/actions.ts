@@ -46,16 +46,6 @@ export async function atualizarOrcamento(orcamentoId: string, payload: Orcamento
           comprimento: a.comprimento,
           largura: a.largura,
           pe_direito: a.peDireito,
-          chapeamento: a.chapeamento,
-          forro: a.forro,
-          valor_mao_obra_chapeamento: a.valorMaoObraChapeamento,
-          material_chapeamento: a.materialChapeamento,
-          material_item_id_chapeamento: a.materialItemIdChapeamento,
-          valor_material_chapeamento: a.valorMaterialChapeamento,
-          valor_mao_obra_forro: a.valorMaoObraForro,
-          material_forro: a.materialForro,
-          material_item_id_forro: a.materialItemIdForro,
-          valor_material_forro: a.valorMaterialForro,
         }))
       )
       .select('id')
@@ -79,6 +69,8 @@ export async function atualizarOrcamento(orcamentoId: string, payload: Orcamento
       valor_unit: it.valor_unit,
       ambiente_id: it.ambienteLocalId !== null ? ambienteIdPorLocalId.get(it.ambienteLocalId) ?? null : null,
       origem_ambiente: it.origem_ambiente,
+      material_item_id: it.materialItemId,
+      valor_material: it.valorMaterial,
     }))
   )
   if (insertError) {
