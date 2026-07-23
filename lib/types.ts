@@ -66,9 +66,13 @@ export interface AmbienteOrcamento {
   valor_mao_obra_chapeamento: number
   material_chapeamento: boolean
   valor_material_chapeamento: number
+  custo_lote_chapeamento: number
+  rendimento_lote_chapeamento: number
   valor_mao_obra_forro: number
   material_forro: boolean
   valor_material_forro: number
+  custo_lote_forro: number
+  rendimento_lote_forro: number
   created_at: string
 }
 
