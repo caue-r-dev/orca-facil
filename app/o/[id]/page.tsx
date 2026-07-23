@@ -16,7 +16,7 @@ export default async function OrcamentoPublicoPage({ params }: { params: Promise
   const { data: empresa } = await admin.from('empresas').select('*').eq('id', orcamento.empresa_id).single<Empresa>()
 
   return (
-    <main className="mx-auto max-w-2xl px-5 py-10">
+    <main className="mx-auto max-w-2xl px-5 py-10 print:max-w-none print:p-0">
       <OrcamentoPreview
         empresaNome={empresa?.nome ?? ''}
         segmentoLabel={empresa ? (SEGMENTOS[empresa.segmento_padrao as keyof typeof SEGMENTOS]?.label ?? empresa.segmento_padrao) : ''}

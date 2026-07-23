@@ -9,7 +9,18 @@ body {
 }
 
 @media print {
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+
   .no-print {
     display: none !important;
+  }
+
+  html,
+  body {
+    width: 210mm;
+    background: none;
   }
 }
