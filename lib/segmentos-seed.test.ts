@@ -8,17 +8,10 @@ describe('SEGMENTOS', () => {
     )
   })
 
-  it('geral has no default items (custom/other segment)', () => {
-    expect(SEGMENTOS.geral.itens).toEqual([])
-  })
-
-  it('every non-geral segment has at least one item with a positive valorUnitPadrao', () => {
-    for (const key of ['eletrica', 'hidraulica', 'construcao', 'drywall'] as const) {
-      expect(SEGMENTOS[key].itens.length).toBeGreaterThan(0)
-      for (const item of SEGMENTOS[key].itens) {
-        expect(item.valorUnitPadrao).toBeGreaterThan(0)
-        expect(['material', 'mao_obra']).toContain(item.categoria)
-      }
+  it('every segment has a label and a positive bdiPadrao', () => {
+    for (const seg of Object.values(SEGMENTOS)) {
+      expect(seg.label.length).toBeGreaterThan(0)
+      expect(seg.bdiPadrao).toBeGreaterThan(0)
     }
   })
 })

@@ -57,8 +57,30 @@ export default async function ConfiguracoesPage() {
       </form>
 
       <div className="mt-8">
-        <h2 className="text-xs font-bold uppercase tracking-wide text-brass">Biblioteca de itens</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-bold uppercase tracking-wide text-brass">Biblioteca de itens</h2>
+        </div>
+
+        <details className="mt-3 rounded-sm border border-brass bg-brass-soft/30">
+          <summary className="cursor-pointer list-none px-4 py-3 font-sans text-sm font-bold text-blueprint-deep">
+            + Cadastrar serviço
+          </summary>
+          <form action={adicionarItem} className="grid grid-cols-1 gap-2 border-t border-brass px-4 py-4 text-sm sm:grid-cols-[2fr_1fr_1fr_1fr_auto]">
+            <input name="descricao" placeholder="Descrição" required className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+            <select name="categoria" className="border-b border-line bg-transparent py-1 outline-none focus:border-brass">
+              <option value="material">Material</option>
+              <option value="mao_obra">Mão de obra</option>
+            </select>
+            <input name="unidade" placeholder="un" defaultValue="un" className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+            <input type="number" name="valorUnitPadrao" placeholder="0" className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+            <button type="submit" className="rounded-sm bg-blueprint-deep px-4 py-2 text-sm font-bold text-paper">Salvar serviço</button>
+          </form>
+        </details>
+
         <ul className="mt-4 flex flex-col gap-2">
+          {(biblioteca ?? []).length === 0 && (
+            <li className="text-sm italic text-ink-soft">Nenhum serviço cadastrado ainda.</li>
+          )}
           {(biblioteca ?? []).map((item) => (
             <li key={item.id} className="flex items-center justify-between border border-line bg-white px-3 py-2 text-sm">
               <span>{item.descricao} <span className="text-ink-soft">· R$ {item.valor_unit_padrao}/{item.unidade}</span></span>
@@ -68,17 +90,6 @@ export default async function ConfiguracoesPage() {
             </li>
           ))}
         </ul>
-
-        <form action={adicionarItem} className="mt-4 grid grid-cols-[2fr_1fr_1fr_1fr_auto] items-center gap-2 text-sm">
-          <input name="descricao" placeholder="Descrição" required className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
-          <select name="categoria" className="border-b border-line bg-transparent py-1 outline-none focus:border-brass">
-            <option value="material">Material</option>
-            <option value="mao_obra">Mão de obra</option>
-          </select>
-          <input name="unidade" placeholder="un" defaultValue="un" className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
-          <input type="number" name="valorUnitPadrao" placeholder="0" className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
-          <button type="submit" className="rounded-sm border border-dashed border-line px-3 py-1.5 text-ink-soft">+</button>
-        </form>
       </div>
     </main>
   )

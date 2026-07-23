@@ -11,9 +11,11 @@ export async function cadastrar(formData: FormData): Promise<{ error?: string }>
   const senha = String(formData.get('senha') ?? '')
   const nomeUsuario = String(formData.get('nomeUsuario') ?? '')
   const nomeEmpresa = String(formData.get('nomeEmpresa') ?? '')
+  const cnpj = String(formData.get('cnpj') ?? '')
+  const telefone = String(formData.get('telefone') ?? '')
   const segmento = String(formData.get('segmento') ?? 'geral') as SegmentoKey
 
-  if (!email || !senha || !nomeUsuario || !nomeEmpresa) {
+  if (!email || !senha || !nomeUsuario || !nomeEmpresa || !cnpj || !telefone) {
     return { error: 'Preencha todos os campos.' }
   }
 
@@ -33,7 +35,7 @@ export async function cadastrar(formData: FormData): Promise<{ error?: string }>
   const empresaId = randomUUID()
   const { error: empresaError } = await supabase
     .from('empresas')
-    .insert({ id: empresaId, nome: nomeEmpresa, segmento_padrao: segmento, bdi_padrao: seed.bdiPadrao })
+    .insert({ id: empresaId, nome: nomeEmpresa, cnpj, telefone, segmento_padrao: segmento, bdi_padrao: seed.bdiPadrao })
   if (empresaError) {
     return { error: empresaError.message ?? 'Não foi possível criar a empresa.' }
   }
@@ -43,21 +45,6 @@ export async function cadastrar(formData: FormData): Promise<{ error?: string }>
     .insert({ id: signUpData.user.id, empresa_id: empresaId, nome: nomeUsuario })
   if (usuarioError) {
     return { error: usuarioError.message }
-  }
-
-  if (seed.itens.length > 0) {
-    const { error: bibliotecaError } = await supabase.from('itens_biblioteca_empresa').insert(
-      seed.itens.map((item) => ({
-        empresa_id: empresaId,
-        descricao: item.descricao,
-        categoria: item.categoria,
-        unidade: item.unidade,
-        valor_unit_padrao: item.valorUnitPadrao,
-      }))
-    )
-    if (bibliotecaError) {
-      return { error: bibliotecaError.message }
-    }
   }
 
   redirect('/dashboard')

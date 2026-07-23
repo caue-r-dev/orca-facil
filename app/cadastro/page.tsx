@@ -1,6 +1,8 @@
 import { cadastrar } from './actions'
 import { SEGMENTOS } from '@/lib/segmentos-seed'
 
+const SEGMENTOS_CADASTRO = ['eletrica', 'hidraulica', 'construcao', 'drywall'] as const
+
 export default function CadastroPage() {
   return (
     <main className="mx-auto max-w-md px-6 py-16">
@@ -13,7 +15,7 @@ export default function CadastroPage() {
         className="mt-8 flex flex-col gap-4"
       >
         <label className="flex flex-col gap-1 text-sm">
-          Seu nome
+          Nome completo
           <input name="nomeUsuario" required className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
         </label>
         <label className="flex flex-col gap-1 text-sm">
@@ -21,10 +23,18 @@ export default function CadastroPage() {
           <input name="nomeEmpresa" required className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
         </label>
         <label className="flex flex-col gap-1 text-sm">
+          CNPJ
+          <input name="cnpj" required className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          Telefone
+          <input name="telefone" required className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
           Segmento principal
           <select name="segmento" required className="border-b border-line bg-transparent py-1 outline-none focus:border-brass">
-            {Object.entries(SEGMENTOS).map(([key, seg]) => (
-              <option key={key} value={key}>{seg.label}</option>
+            {SEGMENTOS_CADASTRO.map((key) => (
+              <option key={key} value={key}>{SEGMENTOS[key].label}</option>
             ))}
           </select>
         </label>

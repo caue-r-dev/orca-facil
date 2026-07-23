@@ -8,6 +8,7 @@ export type OrigemAmbiente = 'chapeamento' | 'forro'
 export interface Empresa {
   id: string
   nome: string
+  cnpj: string | null
   segmento_padrao: SegmentoKey
   telefone: string | null
   logo_url: string | null
