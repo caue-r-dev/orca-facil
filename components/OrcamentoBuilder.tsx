@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { SEGMENTOS } from '@/lib/segmentos-seed'
 import { formatarMoeda } from '@/lib/calc'
 import { OrcamentoPreview } from './OrcamentoPreview'
-import type { AmbienteOrcamento, Categoria, ItemBiblioteca, ItemOrcamento, MedidaAmbiente, ModoMedicao, SegmentoKey } from '@/lib/types'
+import type { AmbienteOrcamento, Categoria, ItemBiblioteca, ItemOrcamento, MedidaAmbiente, ModoMedicao } from '@/lib/types'
 
 interface ItemForm {
   descricao: string
@@ -43,13 +43,6 @@ function arredondar(n: number): number {
   return Math.round(n * 100) / 100
 }
 
-// Segmentos que orçam por parede construída (drywall, alvenaria) usam
-// pé-direito e área de parede. Elétrica/hidráulica não orçam por
-// parede, só precisam de área/perímetro do ambiente.
-function segmentoTemParede(segmento: SegmentoKey): boolean {
-  return segmento === 'drywall' || segmento === 'construcao'
-}
-
 function calcularPerimetro(a: AmbienteForm): number {
   return arredondar(2 * ((Number(a.comprimento) || 0) + (Number(a.largura) || 0)))
 }
@@ -62,8 +55,11 @@ function calcularAreaParede(a: AmbienteForm): number {
   return arredondar(calcularPerimetro(a) * (Number(a.peDireito) || 0))
 }
 
-function medidasDisponiveis(segmento: SegmentoKey): MedidaAmbiente[] {
-  return segmentoTemParede(segmento) ? ['perimetro', 'area', 'area_parede'] : ['perimetro', 'area']
+// Trabalhar com parede/pé-direito é um campo explícito da empresa
+// (definido pelo admin no cadastro), não inferido do nome do
+// segmento — segmento agora é texto livre.
+function medidasDisponiveis(temParede: boolean): MedidaAmbiente[] {
+  return temParede ? ['perimetro', 'area', 'area_parede'] : ['perimetro', 'area']
 }
 
 function calcularMedida(a: AmbienteForm, medida: MedidaAmbiente): number {
@@ -85,7 +81,8 @@ export interface OrcamentoBuilderPayload {
 
 interface OrcamentoBuilderProps {
   biblioteca: ItemBiblioteca[]
-  segmentoPadrao: SegmentoKey
+  segmentoPadrao: string
+  temParede: boolean
   empresaNome: string
   valoresIniciais?: {
     clienteNome: string
@@ -103,9 +100,8 @@ interface OrcamentoBuilderProps {
 let nextLocalId = 1
 let nextAmbienteLocalId = 1
 
-export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valoresIniciais, onSalvar }: OrcamentoBuilderProps) {
-  const temParede = segmentoTemParede(segmentoPadrao)
-  const medidas = medidasDisponiveis(segmentoPadrao)
+export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empresaNome, valoresIniciais, onSalvar }: OrcamentoBuilderProps) {
+  const medidas = medidasDisponiveis(temParede)
 
   const ambientesIniciais: AmbientePayload[] = (valoresIniciais?.ambientes ?? []).map((a) => ({
     localId: nextAmbienteLocalId++,
@@ -428,7 +424,7 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
       <div className="lg:sticky lg:top-5 self-start">
         <OrcamentoPreview
           empresaNome={empresaNome}
-          segmentoLabel={SEGMENTOS[segmentoPadrao].label}
+          segmentoLabel={SEGMENTOS[segmentoPadrao as keyof typeof SEGMENTOS]?.label ?? segmentoPadrao}
           clienteNome={clienteNome}
           obraEndereco={obraEndereco}
           prazoExecucao={prazoExecucao}

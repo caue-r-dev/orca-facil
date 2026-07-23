@@ -19,7 +19,7 @@ export default async function OrcamentoPublicoPage({ params }: { params: Promise
     <main className="mx-auto max-w-2xl px-5 py-10">
       <OrcamentoPreview
         empresaNome={empresa?.nome ?? ''}
-        segmentoLabel={empresa ? SEGMENTOS[empresa.segmento_padrao].label : ''}
+        segmentoLabel={empresa ? (SEGMENTOS[empresa.segmento_padrao as keyof typeof SEGMENTOS]?.label ?? empresa.segmento_padrao) : ''}
         clienteNome={orcamento.cliente_nome}
         obraEndereco={orcamento.obra_endereco ?? ''}
         prazoExecucao={orcamento.prazo_execucao ?? ''}

@@ -97,7 +97,7 @@ export default async function AdminPage() {
               return (
                 <tr key={empresa.id} className="border-b border-dotted border-line align-top">
                   <td className="px-4 py-3 font-bold text-blueprint-deep">{empresa.nome}</td>
-                  <td className="px-4 py-3">{SEGMENTOS[empresa.segmento_padrao]?.label ?? empresa.segmento_padrao}</td>
+                  <td className="px-4 py-3">{SEGMENTOS[empresa.segmento_padrao as keyof typeof SEGMENTOS]?.label ?? empresa.segmento_padrao}</td>
                   <td className="px-4 py-3">{email ?? '—'}</td>
                   <td className="px-4 py-3">
                     <span className={`rounded-sm px-2 py-1 text-xs font-bold uppercase ${bloqueadoEfetivo ? 'bg-danger/10 text-danger' : 'bg-brass-soft text-blueprint-deep'}`}>

@@ -1,3 +1,6 @@
+// Presets rápidos oferecidos no cadastro — segmento_padrao das empresas
+// agora aceita qualquer texto (customizado pelo admin), então esse tipo
+// só descreve as opções de atalho, não todo valor possível no banco.
 export type SegmentoKey = 'eletrica' | 'hidraulica' | 'construcao' | 'drywall' | 'geral'
 export type Categoria = 'material' | 'mao_obra'
 export type OrcamentoStatus = 'rascunho' | 'enviado'
@@ -13,7 +16,8 @@ export interface Empresa {
   id: string
   nome: string
   cnpj: string | null
-  segmento_padrao: SegmentoKey
+  segmento_padrao: string
+  tem_parede: boolean
   telefone: string | null
   logo_url: string | null
   cor_primaria: string

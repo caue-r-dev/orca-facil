@@ -31,6 +31,7 @@ export default async function EditarOrcamentoPage({ params }: { params: Promise<
     <OrcamentoBuilder
       biblioteca={biblioteca ?? []}
       segmentoPadrao={empresa?.segmento_padrao ?? 'geral'}
+      temParede={empresa?.tem_parede ?? false}
       empresaNome={empresa?.nome ?? ''}
       valoresIniciais={{
         clienteNome: orcamento.cliente_nome,

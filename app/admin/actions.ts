@@ -5,7 +5,6 @@ import { revalidatePath } from 'next/cache'
 import { randomUUID } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import type { SegmentoKey } from '@/lib/types'
 
 // Toda ação de admin roda com o service-role client (cross-tenant, sem
 // RLS), mas só depois de confirmar via sessão normal que quem está
@@ -29,10 +28,13 @@ export async function criarPrestador(formData: FormData): Promise<{ error?: stri
   const nomeEmpresa = String(formData.get('nomeEmpresa') ?? '')
   const cnpj = String(formData.get('cnpj') ?? '')
   const telefone = String(formData.get('telefone') ?? '')
-  const segmento = String(formData.get('segmento') ?? 'geral') as SegmentoKey
+  const segmentoPreset = String(formData.get('segmento') ?? '')
+  const segmentoCustom = String(formData.get('segmentoCustom') ?? '').trim()
+  const segmento = segmentoPreset === 'outro' ? segmentoCustom : segmentoPreset
+  const temParede = formData.get('temParede') === 'on'
   const dataVencimento = String(formData.get('dataVencimento') ?? '')
 
-  if (!email || !senha || !nomeUsuario || !nomeEmpresa || !cnpj || !telefone || !dataVencimento) {
+  if (!email || !senha || !nomeUsuario || !nomeEmpresa || !cnpj || !telefone || !dataVencimento || !segmento) {
     return { error: 'Preencha todos os campos.' }
   }
 
@@ -50,7 +52,7 @@ export async function criarPrestador(formData: FormData): Promise<{ error?: stri
   const empresaId = randomUUID()
   const { error: empresaError } = await admin
     .from('empresas')
-    .insert({ id: empresaId, nome: nomeEmpresa, cnpj, telefone, segmento_padrao: segmento, data_vencimento: dataVencimento })
+    .insert({ id: empresaId, nome: nomeEmpresa, cnpj, telefone, segmento_padrao: segmento, tem_parede: temParede, data_vencimento: dataVencimento })
   if (empresaError) {
     return { error: empresaError.message }
   }

@@ -30,7 +30,7 @@ export default async function AdminEmpresaPage({ params }: { params: Promise<{ e
     <main className="mx-auto max-w-3xl px-6 py-12">
       <Link href="/admin" className="text-xs font-bold text-brass underline">← Voltar</Link>
       <h1 className="mt-2 text-2xl font-bold text-blueprint-deep">{empresa.nome}</h1>
-      <p className="text-sm text-ink-soft">{SEGMENTOS[empresa.segmento_padrao]?.label ?? empresa.segmento_padrao}</p>
+      <p className="text-sm text-ink-soft">{SEGMENTOS[empresa.segmento_padrao as keyof typeof SEGMENTOS]?.label ?? empresa.segmento_padrao}</p>
 
       <div className="mt-8 border border-line bg-white p-4 sm:p-5">
         <div className="mb-3 text-xs font-bold uppercase tracking-wide text-brass">Serviços cadastrados</div>

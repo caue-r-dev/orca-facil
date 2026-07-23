@@ -25,6 +25,7 @@ export default async function NovoOrcamentoPage() {
     <OrcamentoBuilder
       biblioteca={biblioteca ?? []}
       segmentoPadrao={empresa?.segmento_padrao ?? 'geral'}
+      temParede={empresa?.tem_parede ?? false}
       empresaNome={empresa?.nome ?? ''}
       onSalvar={criarComEmpresa}
     />
