@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { atualizarEmpresa, adicionarItemBiblioteca, removerItemBiblioteca } from './actions'
+import { atualizarEmpresa, atualizarLogo, adicionarItemBiblioteca, removerItemBiblioteca } from './actions'
 import type { Empresa, ItemBiblioteca } from '@/lib/types'
 
 export default async function ConfiguracoesPage() {
@@ -23,9 +23,15 @@ export default async function ConfiguracoesPage() {
     'use server'
     await atualizarEmpresa(usuario!.empresa_id, {
       nome: String(formData.get('nome') ?? ''),
+      cnpj: String(formData.get('cnpj') ?? ''),
       telefone: String(formData.get('telefone') ?? ''),
       bdiPadrao: Number(formData.get('bdiPadrao') ?? 0),
     })
+  }
+
+  async function salvarLogo(formData: FormData) {
+    'use server'
+    await atualizarLogo(usuario!.empresa_id, formData)
   }
 
   async function adicionarItem(formData: FormData) {
@@ -47,6 +53,9 @@ export default async function ConfiguracoesPage() {
         <label className="flex flex-col gap-1 text-sm">Nome
           <input name="nome" defaultValue={empresa?.nome} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
         </label>
+        <label className="flex flex-col gap-1 text-sm">CNPJ
+          <input name="cnpj" defaultValue={empresa?.cnpj ?? ''} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+        </label>
         <label className="flex flex-col gap-1 text-sm">Telefone
           <input name="telefone" defaultValue={empresa?.telefone ?? ''} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
         </label>
@@ -55,6 +64,19 @@ export default async function ConfiguracoesPage() {
         </label>
         <button type="submit" className="mt-2 self-start rounded-sm bg-blueprint-deep px-4 py-2 text-sm font-bold text-paper">Salvar</button>
       </form>
+
+      <div className="mt-8 flex flex-col gap-3 border-b border-line pb-8">
+        <h2 className="text-xs font-bold uppercase tracking-wide text-brass">Logo da empresa</h2>
+        {empresa?.logo_url && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={empresa.logo_url} alt="Logo atual" className="h-16 w-auto self-start object-contain" />
+        )}
+        <form action={salvarLogo} className="flex flex-wrap items-center gap-3 text-sm">
+          <input type="file" name="logo" accept="image/png,image/jpeg,image/svg+xml,image/webp" required />
+          <button type="submit" className="rounded-sm bg-blueprint-deep px-4 py-2 text-sm font-bold text-paper">Enviar logo</button>
+        </form>
+        <p className="text-xs text-ink-soft">PNG, JPG, SVG ou WebP. Aparece só na proposta pública ({'/o/[id]'}), não no sistema.</p>
+      </div>
 
       <div className="mt-8">
         <div className="flex items-center justify-between">
