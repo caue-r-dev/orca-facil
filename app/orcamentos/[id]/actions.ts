@@ -91,3 +91,17 @@ async function atualizarOrcamentoInterno(orcamentoId: string, payload: Orcamento
   revalidatePath(`/orcamentos/${orcamentoId}`)
   return {}
 }
+
+// Publica o orçamento: status 'rascunho' → 'enviado'. A proposta
+// pública em /o/[id] já é acessível pelo link independente do status
+// (nunca teve checagem de status) — publicar é o que dá ao prestador
+// um sinal claro de "isso já foi mandado pro cliente", pra distinguir
+// de rascunhos ainda em edição na listagem do Dashboard.
+export async function publicarOrcamento(orcamentoId: string): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { error } = await supabase.from('orcamentos').update({ status: 'enviado' }).eq('id', orcamentoId)
+  if (error) return { error: error.message }
+  revalidatePath(`/orcamentos/${orcamentoId}`)
+  revalidatePath('/dashboard')
+  return {}
+}

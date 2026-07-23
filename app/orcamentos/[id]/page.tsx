@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { OrcamentoBuilder } from '@/components/OrcamentoBuilder'
 import { atualizarOrcamento } from './actions'
+import { PublicarOrcamento } from './PublicarOrcamento'
 import type { AmbienteOrcamento, Empresa, ItemBiblioteca, ItemOrcamento, Orcamento } from '@/lib/types'
 
 export default async function EditarOrcamentoPage({ params }: { params: Promise<{ id: string }> }) {
@@ -28,6 +29,10 @@ export default async function EditarOrcamentoPage({ params }: { params: Promise<
   const atualizarComId = atualizarOrcamento.bind(null, id)
 
   return (
+    <>
+    <div className="mx-auto max-w-6xl px-5 pt-6">
+      <PublicarOrcamento orcamentoId={id} statusInicial={orcamento.status} />
+    </div>
     <OrcamentoBuilder
       biblioteca={biblioteca ?? []}
       segmentoPadrao={empresa?.segmento_padrao ?? 'geral'}
@@ -45,5 +50,6 @@ export default async function EditarOrcamentoPage({ params }: { params: Promise<
       }}
       onSalvar={atualizarComId}
     />
+    </>
   )
 }
