@@ -15,38 +15,42 @@ export function CadastroMaterialForm({ adicionarMaterial }: { adicionarMaterial:
         + Cadastrar material
       </summary>
       <form action={adicionarMaterial} className="flex flex-col gap-3 border-t border-brass px-4 py-4 text-sm">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[2fr_1fr]">
-          <label className="flex flex-col gap-1">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <label className="flex min-w-0 flex-col gap-1">
             <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">Descrição</span>
-            <input name="descricao" required className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+            <input name="descricao" required className="w-full border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
           </label>
-          <label className="flex flex-col gap-1">
+          <label className="flex min-w-0 flex-col gap-1">
             <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">Unidade</span>
-            <input name="unidade" value={unidade} onChange={(e) => setUnidade(e.target.value)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+            <input name="unidade" value={unidade} onChange={(e) => setUnidade(e.target.value)} className="w-full border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
           </label>
         </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-          <label className="flex flex-col gap-1">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
+          <label className="flex min-w-0 flex-col gap-1">
             <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">Custo de aquisição (R$)</span>
             <input
               type="number"
+              step="0.01"
+              min="0"
               name="custoAquisicao"
               value={custoAquisicao}
               onChange={(e) => setCustoAquisicao(Number(e.target.value))}
-              className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass"
+              className="font-mono-num w-full border-b border-line bg-transparent py-1 outline-none focus:border-brass"
             />
           </label>
-          <label className="flex flex-col gap-1">
+          <label className="flex min-w-0 flex-col gap-1">
             <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">Margem (%)</span>
             <input
               type="number"
+              step="0.01"
+              min="0"
               name="margemPercentual"
               value={margemPercentual}
               onChange={(e) => setMargemPercentual(Number(e.target.value))}
-              className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass"
+              className="font-mono-num w-full border-b border-line bg-transparent py-1 outline-none focus:border-brass"
             />
           </label>
-          <button type="submit" className="rounded-sm bg-blueprint-deep px-4 py-2 text-sm font-bold text-paper">Salvar material</button>
+          <button type="submit" className="w-full rounded-sm bg-blueprint-deep px-4 py-2 text-sm font-bold text-paper sm:w-auto">Salvar material</button>
         </div>
         <div className="font-mono-num text-xs text-ink-soft">
           {formatarMoeda(custoAquisicao)} + {margemPercentual}% = {formatarMoeda(valorVenda)}/{unidade}

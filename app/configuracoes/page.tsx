@@ -88,27 +88,28 @@ export default async function ConfiguracoesPage() {
             <summary className="cursor-pointer list-none px-4 py-3 font-sans text-sm font-bold text-blueprint-deep">
               + Cadastrar serviço
             </summary>
-            <form action={adicionarItem} className="grid grid-cols-1 gap-3 border-t border-brass px-4 py-4 text-sm sm:grid-cols-[2fr_1fr_1fr_1fr_auto] sm:items-end">
-              <label className="flex flex-col gap-1">
+            <form action={adicionarItem} className="grid grid-cols-1 gap-3 border-t border-brass px-4 py-4 text-sm sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
+              <input type="hidden" name="categoria" value="mao_obra" />
+              <label className="flex min-w-0 flex-col gap-1">
                 <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">Descrição</span>
-                <input name="descricao" required className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+                <input name="descricao" required className="w-full border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
               </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">Categoria</span>
-                <select name="categoria" className="border-b border-line bg-transparent py-1 outline-none focus:border-brass">
-                  <option value="material">Material</option>
-                  <option value="mao_obra">Mão de obra</option>
+              <label className="flex min-w-0 flex-col gap-1">
+                <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">Unidade</span>
+                <select name="unidade" defaultValue="un" className="w-full border-b border-line bg-transparent py-1 outline-none focus:border-brass">
+                  <option value="m²">m² (metro quadrado)</option>
+                  <option value="m">m (metro linear)</option>
+                  <option value="un">un (unidade)</option>
+                  <option value="h">h (hora)</option>
+                  <option value="m³">m³ (metro cúbico)</option>
+                  <option value="vb">vb (verba/fixo)</option>
                 </select>
               </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">Unidade</span>
-                <input name="unidade" defaultValue="un" className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
-              </label>
-              <label className="flex flex-col gap-1">
+              <label className="flex min-w-0 flex-col gap-1">
                 <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">Valor (R$)</span>
-                <input type="number" name="valorUnitPadrao" placeholder="0" className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+                <input type="number" step="0.01" min="0" name="valorUnitPadrao" placeholder="0,00" className="font-mono-num w-full border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
               </label>
-              <button type="submit" className="rounded-sm bg-blueprint-deep px-4 py-2 text-sm font-bold text-paper">Salvar serviço</button>
+              <button type="submit" className="w-full rounded-sm bg-blueprint-deep px-4 py-2 text-sm font-bold text-paper sm:w-auto">Salvar serviço</button>
             </form>
           </details>
 
