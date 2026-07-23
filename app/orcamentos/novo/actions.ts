@@ -42,12 +42,12 @@ export async function criarOrcamento(empresaId: string, payload: OrcamentoBuilde
           forro: a.forro,
           valor_mao_obra_chapeamento: a.valorMaoObraChapeamento,
           material_chapeamento: a.materialChapeamento,
-          custo_lote_chapeamento: a.custoLoteChapeamento,
-          rendimento_lote_chapeamento: a.rendimentoLoteChapeamento,
+          material_item_id_chapeamento: a.materialItemIdChapeamento,
+          valor_material_chapeamento: a.valorMaterialChapeamento,
           valor_mao_obra_forro: a.valorMaoObraForro,
           material_forro: a.materialForro,
-          custo_lote_forro: a.custoLoteForro,
-          rendimento_lote_forro: a.rendimentoLoteForro,
+          material_item_id_forro: a.materialItemIdForro,
+          valor_material_forro: a.valorMaterialForro,
         }))
       )
       .select('id')
