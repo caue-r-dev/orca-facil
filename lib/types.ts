@@ -13,7 +13,6 @@ export interface Empresa {
   telefone: string | null
   logo_url: string | null
   cor_primaria: string
-  bdi_padrao: number
   created_at: string
 }
 
@@ -33,7 +32,6 @@ export interface Orcamento {
   prazo_execucao: string | null
   validade_dias: number
   forma_pagamento: string | null
-  bdi: number
   status: OrcamentoStatus
   created_at: string
   updated_at: string

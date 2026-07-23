@@ -8,10 +8,9 @@ describe('SEGMENTOS', () => {
     )
   })
 
-  it('every segment has a label and a positive bdiPadrao', () => {
+  it('every segment has a label', () => {
     for (const seg of Object.values(SEGMENTOS)) {
       expect(seg.label.length).toBeGreaterThan(0)
-      expect(seg.bdiPadrao).toBeGreaterThan(0)
     }
   })
 })

@@ -111,7 +111,6 @@ export interface OrcamentoBuilderPayload {
   prazoExecucao: string
   validadeDias: number
   formaPagamento: string
-  bdi: number
   ambientes: AmbientePayload[]
   itens: ItemForm[]
 }
@@ -127,7 +126,6 @@ interface OrcamentoBuilderProps {
     prazoExecucao: string
     validadeDias: number
     formaPagamento: string
-    bdi: number
     itens: ItemOrcamento[]
     ambientes: AmbienteOrcamento[]
   }
@@ -199,7 +197,6 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
       ambienteLocalId: it.ambiente_id ? ambienteLocalIdPorDbId.get(it.ambiente_id) ?? null : null,
     }))
   )
-  const [bdi, setBdi] = useState(valoresIniciais?.bdi ?? SEGMENTOS[segmentoPadrao].bdiPadrao)
   const [clienteNome, setClienteNome] = useState(valoresIniciais?.clienteNome ?? '')
   const [clienteContato, setClienteContato] = useState(valoresIniciais?.clienteContato ?? '')
   const [obraEndereco, setObraEndereco] = useState(valoresIniciais?.obraEndereco ?? '')
@@ -330,7 +327,7 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
     }
     setSalvando(true)
     const resultado = await onSalvar({
-      clienteNome, clienteContato, obraEndereco, prazoExecucao, validadeDias, formaPagamento, bdi,
+      clienteNome, clienteContato, obraEndereco, prazoExecucao, validadeDias, formaPagamento,
       ambientes,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       itens: itens.map(({ localId, ...rest }) => rest),
@@ -652,14 +649,6 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
           </div>
         </div>
 
-        <div className="mb-7">
-          <div className="mb-3 text-xs font-bold uppercase tracking-wide text-brass">BDI / margem</div>
-          <div className="flex items-center gap-2.5 border border-line bg-white p-4 text-sm sm:p-5">
-            <input type="number" value={bdi} onChange={(e) => setBdi(Number(e.target.value))} className="font-mono-num w-16 border-b border-line bg-transparent py-1 text-center text-lg font-bold text-blueprint-deep outline-none focus:border-brass" />
-            <span className="text-ink-soft">%</span>
-          </div>
-        </div>
-
         {erro && <p className="mb-4 text-sm text-danger">{erro}</p>}
 
         <button onClick={salvar} disabled={salvando} className="rounded-sm bg-blueprint-deep px-5 py-3 font-sans font-bold text-paper disabled:opacity-50">
@@ -677,7 +666,6 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
           validadeDias={validadeDias}
           formaPagamento={formaPagamento}
           itens={itens}
-          bdi={bdi}
         />
       </div>
     </div>

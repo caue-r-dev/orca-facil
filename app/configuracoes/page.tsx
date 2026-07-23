@@ -25,7 +25,6 @@ export default async function ConfiguracoesPage() {
       nome: String(formData.get('nome') ?? ''),
       cnpj: String(formData.get('cnpj') ?? ''),
       telefone: String(formData.get('telefone') ?? ''),
-      bdiPadrao: Number(formData.get('bdiPadrao') ?? 0),
     })
   }
 
@@ -62,10 +61,6 @@ export default async function ConfiguracoesPage() {
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">Telefone</span>
             <input name="telefone" defaultValue={empresa?.telefone ?? ''} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">BDI padrão (%)</span>
-            <input type="number" name="bdiPadrao" defaultValue={empresa?.bdi_padrao} className="font-mono-num border-b border-line bg-transparent py-1 text-lg font-bold text-blueprint-deep outline-none focus:border-brass" />
           </label>
           <button type="submit" className="mt-1 self-start rounded-sm bg-blueprint-deep px-4 py-2 text-sm font-bold text-paper">Salvar</button>
         </form>

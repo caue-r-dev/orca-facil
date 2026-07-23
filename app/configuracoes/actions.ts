@@ -7,12 +7,12 @@ import type { Categoria } from '@/lib/types'
 
 export async function atualizarEmpresa(
   empresaId: string,
-  dados: { nome: string; cnpj: string; telefone: string; bdiPadrao: number }
+  dados: { nome: string; cnpj: string; telefone: string }
 ): Promise<{ error?: string }> {
   const supabase = await createClient()
   const { error } = await supabase
     .from('empresas')
-    .update({ nome: dados.nome, cnpj: dados.cnpj || null, telefone: dados.telefone || null, bdi_padrao: dados.bdiPadrao })
+    .update({ nome: dados.nome, cnpj: dados.cnpj || null, telefone: dados.telefone || null })
     .eq('id', empresaId)
   if (error) return { error: error.message }
   revalidatePath('/configuracoes')

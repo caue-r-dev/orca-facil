@@ -16,7 +16,7 @@ export async function atualizarOrcamento(orcamentoId: string, payload: Orcamento
       prazo_execucao: payload.prazoExecucao || null,
       validade_dias: payload.validadeDias,
       forma_pagamento: payload.formaPagamento || null,
-      bdi: payload.bdi,
+      bdi: 0,
       updated_at: new Date().toISOString(),
     })
     .eq('id', orcamentoId)

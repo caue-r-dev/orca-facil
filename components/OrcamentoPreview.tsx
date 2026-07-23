@@ -20,19 +20,18 @@ interface OrcamentoPreviewProps {
   validadeDias: number
   formaPagamento: string
   itens: PreviewItem[]
-  bdi: number
   // Só passados pela página pública/PDF (/o/[id]) — o builder interno
   // nunca envia essas props, então a UI de dentro do sistema continua
   // com a paleta padrão do protótipo para todo mundo.
   logoUrl?: string | null
   corPrimaria?: string
   // true só na página pública (/o/[id]): esconde o detalhamento
-  // Materiais/Mão de obra do cliente, mostrando só BDI e Total.
+  // Materiais/Mão de obra do cliente, mostrando só o Total.
   publico?: boolean
 }
 
 export function OrcamentoPreview(props: OrcamentoPreviewProps) {
-  const { subtotalMaterial, subtotalMaoObra, valorBdi, total } = calcularOrcamento(props.itens, props.bdi)
+  const { subtotalMaterial, subtotalMaoObra, total } = calcularOrcamento(props.itens)
   const corDestaque = props.corPrimaria ? { color: props.corPrimaria } : undefined
 
   return (
@@ -87,7 +86,6 @@ export function OrcamentoPreview(props: OrcamentoPreviewProps) {
             <div className="flex justify-between"><span className="font-sans">Mão de obra</span><span>{formatarMoeda(subtotalMaoObra)}</span></div>
           </>
         )}
-        <div className="flex justify-between"><span className="font-sans">BDI ({props.bdi || 0}%)</span><span>{formatarMoeda(valorBdi)}</span></div>
         <div className="mt-1 flex justify-between border-t border-ink pt-2 text-lg font-bold" style={corDestaque}>
           <span className="font-sans">Total</span><span className={props.corPrimaria ? '' : 'text-blueprint-deep'}>{formatarMoeda(total)}</span>
         </div>

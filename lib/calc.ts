@@ -4,13 +4,14 @@ export interface ResultadoCalculo {
   subtotalMaterial: number
   subtotalMaoObra: number
   subtotal: number
-  valorBdi: number
   total: number
 }
 
+// Sem BDI: mão de obra já é o valor final decidido pelo prestador, e
+// material já embute sua própria margem (custo + %) — aplicar um
+// percentual por cima do total duplicaria a margem. Total = soma direta.
 export function calcularOrcamento(
-  itens: Pick<ItemOrcamento, 'categoria' | 'quantidade' | 'valor_unit'>[],
-  bdi: number
+  itens: Pick<ItemOrcamento, 'categoria' | 'quantidade' | 'valor_unit'>[]
 ): ResultadoCalculo {
   let subtotalMaterial = 0
   let subtotalMaoObra = 0
@@ -20,8 +21,7 @@ export function calcularOrcamento(
     else subtotalMaoObra += valor
   }
   const subtotal = subtotalMaterial + subtotalMaoObra
-  const valorBdi = subtotal * ((Number(bdi) || 0) / 100)
-  return { subtotalMaterial, subtotalMaoObra, subtotal, valorBdi, total: subtotal + valorBdi }
+  return { subtotalMaterial, subtotalMaoObra, subtotal, total: subtotal }
 }
 
 export function formatarMoeda(n: number): string {

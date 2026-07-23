@@ -39,7 +39,6 @@ export default async function EditarOrcamentoPage({ params }: { params: Promise<
         prazoExecucao: orcamento.prazo_execucao ?? '',
         validadeDias: orcamento.validade_dias,
         formaPagamento: orcamento.forma_pagamento ?? '',
-        bdi: orcamento.bdi,
         itens: itens ?? [],
         ambientes: ambientes ?? [],
       }}

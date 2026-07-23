@@ -9,24 +9,23 @@ const item = (
 ): Pick<ItemOrcamento, 'categoria' | 'quantidade' | 'valor_unit'> => ({ categoria, quantidade, valor_unit })
 
 describe('calcularOrcamento', () => {
-  it('splits material and mao_obra subtotals and applies BDI on top of the sum', () => {
+  it('splits material and mao_obra subtotals and totals as their direct sum', () => {
     const itens = [item('material', 2, 100), item('mao_obra', 3, 50)]
-    const result = calcularOrcamento(itens, 25)
+    const result = calcularOrcamento(itens)
     expect(result.subtotalMaterial).toBe(200)
     expect(result.subtotalMaoObra).toBe(150)
     expect(result.subtotal).toBe(350)
-    expect(result.valorBdi).toBe(87.5)
-    expect(result.total).toBe(437.5)
+    expect(result.total).toBe(350)
   })
 
   it('returns zeros for an empty item list', () => {
-    const result = calcularOrcamento([], 25)
-    expect(result).toEqual({ subtotalMaterial: 0, subtotalMaoObra: 0, subtotal: 0, valorBdi: 0, total: 0 })
+    const result = calcularOrcamento([])
+    expect(result).toEqual({ subtotalMaterial: 0, subtotalMaoObra: 0, subtotal: 0, total: 0 })
   })
 
   it('treats missing/NaN quantidade or valor_unit as zero', () => {
     const itens = [item('material', NaN, 100)]
-    const result = calcularOrcamento(itens, 10)
+    const result = calcularOrcamento(itens)
     expect(result.subtotalMaterial).toBe(0)
   })
 })

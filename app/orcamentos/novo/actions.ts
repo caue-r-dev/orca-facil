@@ -17,7 +17,7 @@ export async function criarOrcamento(empresaId: string, payload: OrcamentoBuilde
       prazo_execucao: payload.prazoExecucao || null,
       validade_dias: payload.validadeDias,
       forma_pagamento: payload.formaPagamento || null,
-      bdi: payload.bdi,
+      bdi: 0,
       status: 'rascunho',
     })
     .select('id')
