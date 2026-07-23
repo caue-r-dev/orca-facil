@@ -568,30 +568,34 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, empresaNome, valo
                     </div>
                   )}
                   <div className={`grid items-center gap-2 text-sm ${vinculadoAmbiente ? 'grid-cols-[0.9fr_0.7fr_0.9fr_auto]' : 'grid-cols-[2.2fr_0.9fr_0.7fr_0.9fr_auto]'}`}>
-                    {!vinculadoAmbiente && (
-                      <input
-                        value={it.descricao}
-                        onChange={(e) => atualizarItem(it.localId, 'descricao', e.target.value)}
-                        placeholder="Descrição"
-                        className="border-b border-line bg-transparent py-1 outline-none focus:border-brass"
-                      />
-                    )}
-                    <select value={it.categoria} onChange={(e) => atualizarItem(it.localId, 'categoria', e.target.value as Categoria)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass">
-                      <option value="material">Material</option>
-                      <option value="mao_obra">Mão de obra</option>
-                    </select>
-                    <input value={it.unidade} onChange={(e) => atualizarItem(it.localId, 'unidade', e.target.value)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
-                    <input
-                      type="number"
-                      value={it.valor_unit}
-                      onChange={(e) => atualizarItem(it.localId, 'valor_unit', Number(e.target.value))}
-                      disabled={vinculadoAmbiente}
-                      className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass disabled:opacity-60"
-                    />
                     {vinculadoAmbiente ? (
-                      <span className="text-center text-xs text-ink-soft" title="Gerado por um ambiente — edite ou remova o ambiente para alterar">🔗</span>
+                      <>
+                        <span className="text-ink-soft">{it.categoria === 'material' ? 'Material' : 'Mão de obra'}</span>
+                        <span className="font-mono-num text-ink-soft">{it.quantidade.toFixed(2)}{it.unidade}</span>
+                        <span className="font-mono-num text-blueprint-deep">{formatarMoeda(it.quantidade * it.valor_unit)}</span>
+                        <span className="text-center text-xs text-ink-soft" title="Gerado por um ambiente — edite mão de obra e material no card do ambiente">🔗</span>
+                      </>
                     ) : (
-                      <button onClick={() => removerItem(it.localId)} className="text-danger">×</button>
+                      <>
+                        <input
+                          value={it.descricao}
+                          onChange={(e) => atualizarItem(it.localId, 'descricao', e.target.value)}
+                          placeholder="Descrição"
+                          className="border-b border-line bg-transparent py-1 outline-none focus:border-brass"
+                        />
+                        <select value={it.categoria} onChange={(e) => atualizarItem(it.localId, 'categoria', e.target.value as Categoria)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass">
+                          <option value="material">Material</option>
+                          <option value="mao_obra">Mão de obra</option>
+                        </select>
+                        <input value={it.unidade} onChange={(e) => atualizarItem(it.localId, 'unidade', e.target.value)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+                        <input
+                          type="number"
+                          value={it.valor_unit}
+                          onChange={(e) => atualizarItem(it.localId, 'valor_unit', Number(e.target.value))}
+                          className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass"
+                        />
+                        <button onClick={() => removerItem(it.localId)} className="text-danger">×</button>
+                      </>
                     )}
                   </div>
 
