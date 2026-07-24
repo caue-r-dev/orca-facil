@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { CopiarLinkButton } from '@/components/CopiarLinkButton'
+import { OrcamentosList } from './OrcamentosList'
 import type { Orcamento } from '@/lib/types'
 
 export default async function DashboardPage() {
@@ -20,31 +20,7 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      {(!orcamentos || orcamentos.length === 0) ? (
-        <div className="mt-8 border border-line bg-white p-8 text-center">
-          <p className="italic text-ink-soft">Nenhum orçamento ainda. Crie o primeiro.</p>
-        </div>
-      ) : (
-        <ul className="mt-8 flex flex-col gap-3">
-          {orcamentos.map((o) => (
-            <li key={o.id} className="flex flex-col gap-2 border border-line bg-white px-4 py-4 transition-colors hover:border-brass sm:px-5">
-              <Link href={`/orcamentos/${o.id}`} className="flex items-center justify-between">
-                <span className="font-bold text-blueprint-deep">{o.cliente_nome}</span>
-                <span className={o.status === 'enviado' ? 'badge-status' : 'font-mono-num px-2.5 py-1 text-[10px] uppercase tracking-wide bg-paper text-ink-soft'}>
-                  {o.status === 'enviado' ? 'publicado' : o.status}
-                </span>
-              </Link>
-              {o.status === 'enviado' && (
-                <div className="flex flex-wrap items-center gap-3 border-t border-dotted border-line pt-2">
-                  <CopiarLinkButton caminho={`/o/${o.id}`} className="text-xs font-bold text-brass underline" />
-                  <Link href={`/o/${o.id}`} target="_blank" className="text-xs font-bold text-brass underline">Ver proposta</Link>
-                  <Link href={`/o/${o.id}`} target="_blank" className="text-xs font-bold text-blueprint-deep underline">Exportar PDF</Link>
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+      <OrcamentosList orcamentosIniciais={orcamentos ?? []} />
     </main>
   )
 }
