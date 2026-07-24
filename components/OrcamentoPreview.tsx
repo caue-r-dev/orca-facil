@@ -10,6 +10,9 @@ interface PreviewItem {
   unidade: string
   quantidade: number
   valor_unit: number
+  // Soma dos materiais por conta do prestador — flat, não multiplica
+  // por quantidade (ver calcularOrcamento em lib/calc.ts).
+  valor_material: number
 }
 
 interface PreviewAmbiente {
@@ -166,7 +169,7 @@ export function OrcamentoPreview(props: OrcamentoPreviewProps) {
                 <span className="text-center">{it.quantidade}</span>
                 <span className="text-center">{it.unidade}</span>
                 <span className="text-right">{formatarMoeda(Number(it.valor_unit) || 0)}</span>
-                <span className="text-right">{formatarMoeda((Number(it.quantidade) || 0) * (Number(it.valor_unit) || 0))}</span>
+                <span className="text-right">{formatarMoeda((Number(it.quantidade) || 0) * (Number(it.valor_unit) || 0) + (Number(it.valor_material) || 0))}</span>
               </div>
             ))}
           </div>

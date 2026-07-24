@@ -5,8 +5,9 @@ import type { ItemOrcamento } from './types'
 const item = (
   categoria: 'material' | 'mao_obra',
   quantidade: number,
-  valor_unit: number
-): Pick<ItemOrcamento, 'categoria' | 'quantidade' | 'valor_unit'> => ({ categoria, quantidade, valor_unit })
+  valor_unit: number,
+  valor_material = 0
+): Pick<ItemOrcamento, 'categoria' | 'quantidade' | 'valor_unit' | 'valor_material'> => ({ categoria, quantidade, valor_unit, valor_material })
 
 describe('calcularOrcamento', () => {
   it('splits material and mao_obra subtotals and totals as their direct sum', () => {
@@ -27,6 +28,21 @@ describe('calcularOrcamento', () => {
     const itens = [item('material', NaN, 100)]
     const result = calcularOrcamento(itens)
     expect(result.subtotalMaterial).toBe(0)
+  })
+
+  it('adds valor_material (soma dos materiais por conta do prestador) flat, sem multiplicar por quantidade', () => {
+    // mão de obra R$ 80 (quantidade 1) + Guia R$ 22 + Montante R$ 33 = R$ 135
+    const itens = [item('mao_obra', 1, 80, 55)]
+    const result = calcularOrcamento(itens)
+    expect(result.subtotalMaoObra).toBe(135)
+    expect(result.total).toBe(135)
+  })
+
+  it('does not multiply valor_material by quantidade', () => {
+    const itens = [item('mao_obra', 10, 8, 55)]
+    const result = calcularOrcamento(itens)
+    // 10 * 8 + 55 = 135, nunca (8 + 55) * 10
+    expect(result.total).toBe(135)
   })
 })
 

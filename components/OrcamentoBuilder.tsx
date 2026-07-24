@@ -6,6 +6,7 @@ import { SEGMENTOS } from '@/lib/segmentos-seed'
 import { formatarMoeda, nomeServicoSemAmbiente } from '@/lib/calc'
 import { OrcamentoPreview } from './OrcamentoPreview'
 import { NumeroInput } from './NumeroInput'
+import { MaterialMultiSelect } from './MaterialMultiSelect'
 import type { AmbienteOrcamento, Categoria, ItemBiblioteca, ItemOrcamento, MedidaAmbiente, ModoMedicao } from '@/lib/types'
 
 interface ItemForm {
@@ -19,8 +20,10 @@ interface ItemForm {
   valor_unit: number
   ambienteLocalId: number | null
   origem_ambiente: MedidaAmbiente | null
-  materialItemId: string | null
-  valorMaterial: number
+  materialItemIds: string[]
+  // Soma dos valor_unit_padrao dos materiais em materialItemIds — flat,
+  // não multiplica por quantidade (ver calcularOrcamento).
+  valor_material: number
 }
 
 interface AmbienteForm {
@@ -38,7 +41,7 @@ interface PickerAmbiente {
   servicoId: string
   medida: MedidaAmbiente
   materialAberto: boolean
-  materialId: string
+  materialIds: string[]
 }
 
 const MEDIDA_LABEL: Record<MedidaAmbiente, string> = {
@@ -171,13 +174,18 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
       localId: nextLocalId++,
       ambienteLocalId: it.ambiente_id ? ambienteLocalIdPorDbId.get(it.ambiente_id) ?? null : null,
       origem_ambiente: it.origem_ambiente as MedidaAmbiente | null,
-      materialItemId: it.material_item_id,
-      valorMaterial: it.valor_material,
+      // material_item_ids pode vir vazio em orçamentos salvos antes da
+      // migração 0013 — cai pro material_item_id (uuid único) legado
+      // pra não perder o material já escolhido.
+      materialItemIds: it.material_item_ids && it.material_item_ids.length > 0
+        ? it.material_item_ids
+        : (it.material_item_id ? [it.material_item_id] : []),
+      valor_material: it.valor_material,
     }))
   )
   const [picker, setPicker] = useState<Record<number, PickerAmbiente>>({})
   function pickerPadrao(ambienteLocalId: number, estado: Record<number, PickerAmbiente>): PickerAmbiente {
-    return estado[ambienteLocalId] ?? { servicoId: '', medida: medidas[0], materialAberto: false, materialId: '' }
+    return estado[ambienteLocalId] ?? { servicoId: '', medida: medidas[0], materialAberto: false, materialIds: [] }
   }
   const [clienteNome, setClienteNome] = useState(rascunho?.clienteNome ?? valoresIniciais?.clienteNome ?? '')
   const [clienteContato, setClienteContato] = useState(rascunho?.clienteContato ?? valoresIniciais?.clienteContato ?? '')
@@ -236,12 +244,12 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
   function alternarPickerMaterial(ambienteLocalId: number) {
     setPicker((prev) => {
       const atual = pickerPadrao(ambienteLocalId, prev)
-      return { ...prev, [ambienteLocalId]: { ...atual, materialAberto: !atual.materialAberto, materialId: atual.materialAberto ? '' : atual.materialId } }
+      return { ...prev, [ambienteLocalId]: { ...atual, materialAberto: !atual.materialAberto, materialIds: atual.materialAberto ? [] : atual.materialIds } }
     })
   }
 
-  function definirPickerMaterial(ambienteLocalId: number, materialId: string) {
-    setPicker((prev) => ({ ...prev, [ambienteLocalId]: { ...pickerPadrao(ambienteLocalId, prev), materialId } }))
+  function definirPickerMaterial(ambienteLocalId: number, materialIds: string[]) {
+    setPicker((prev) => ({ ...prev, [ambienteLocalId]: { ...pickerPadrao(ambienteLocalId, prev), materialIds } }))
   }
 
   function adicionarServicoAoAmbiente(ambienteLocalId: number) {
@@ -249,8 +257,10 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
     const ambiente = ambientes.find((a) => a.localId === ambienteLocalId)
     const servico = escolha ? servicosBiblioteca.find((b) => b.id === escolha.servicoId) : undefined
     if (!ambiente || !servico || !escolha) return
-    const material = escolha.materialId ? materiaisBiblioteca.find((m) => m.id === escolha.materialId) : undefined
-    const valorMaterial = material ? material.valor_unit_padrao : 0
+    const materiais = escolha.materialIds
+      .map((id) => materiaisBiblioteca.find((m) => m.id === id))
+      .filter((m): m is ItemBiblioteca => !!m)
+    const valorMaterial = arredondar(materiais.reduce((soma, m) => soma + m.valor_unit_padrao, 0))
     setItens((prev) => [
       ...prev,
       {
@@ -262,14 +272,14 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
         comprimento: null,
         altura: null,
         quantidade: calcularMedida(ambiente, escolha.medida),
-        valor_unit: arredondar(servico.valor_unit_padrao + valorMaterial),
+        valor_unit: servico.valor_unit_padrao,
         ambienteLocalId: ambiente.localId,
         origem_ambiente: escolha.medida,
-        materialItemId: material ? material.id : null,
-        valorMaterial,
+        materialItemIds: materiais.map((m) => m.id),
+        valor_material: valorMaterial,
       },
     ])
-    setPicker((prev) => ({ ...prev, [ambienteLocalId]: { servicoId: '', medida: escolha.medida, materialAberto: false, materialId: '' } }))
+    setPicker((prev) => ({ ...prev, [ambienteLocalId]: { servicoId: '', medida: escolha.medida, materialAberto: false, materialIds: [] } }))
   }
 
   function removerItem(localId: number) {
@@ -359,7 +369,7 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
           <div className="flex flex-col gap-2.5">
             {ambientes.map((a) => {
               const itensDoAmbiente = itens.filter((it) => it.ambienteLocalId === a.localId)
-              const totalAmbiente = itensDoAmbiente.reduce((soma, it) => soma + it.quantidade * it.valor_unit, 0)
+              const totalAmbiente = itensDoAmbiente.reduce((soma, it) => soma + it.quantidade * it.valor_unit + it.valor_material, 0)
               const escolha = pickerPadrao(a.localId, picker)
 
               return (
@@ -427,8 +437,15 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
                               <div>
                                 <div className="text-xs font-bold text-blueprint-deep">{it.descricao}</div>
                                 <div className="mt-1 font-mono-num text-xs text-ink-soft">
-                                  {it.origem_ambiente && MEDIDA_LABEL[it.origem_ambiente] ? MEDIDA_LABEL[it.origem_ambiente] : 'Manual'} · {it.quantidade.toFixed(2)}{it.unidade} × {formatarMoeda(it.valor_unit)} = {formatarMoeda(it.quantidade * it.valor_unit)}
+                                  {it.origem_ambiente && MEDIDA_LABEL[it.origem_ambiente] ? MEDIDA_LABEL[it.origem_ambiente] : 'Manual'} · {it.quantidade.toFixed(2)}{it.unidade} × {formatarMoeda(it.valor_unit)}
+                                  {it.valor_material > 0 && ` + ${formatarMoeda(it.valor_material)}`}
+                                  {' '}= {formatarMoeda(it.quantidade * it.valor_unit + it.valor_material)}
                                 </div>
+                                {it.materialItemIds.length > 0 && (
+                                  <div className="mt-0.5 text-[11px] text-ink-soft">
+                                    Materiais: {it.materialItemIds.map((id) => materiaisBiblioteca.find((m) => m.id === id)?.descricao).filter(Boolean).join(', ')}
+                                  </div>
+                                )}
                               </div>
                               <button onClick={() => removerItem(it.localId)} className="text-danger">×</button>
                             </div>
@@ -483,18 +500,11 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
                           </button>
                         </div>
                         {escolha.materialAberto && (
-                          <label className="flex flex-col gap-1 text-xs" style={{ maxWidth: '320px' }}>Material por conta do prestador — soma ao valor do serviço
-                            <select
-                              value={escolha.materialId}
-                              onChange={(e) => definirPickerMaterial(a.localId, e.target.value)}
-                              className="w-full border-b border-line bg-white py-1 outline-none focus:border-brass"
-                            >
-                              <option value="">Selecione um material</option>
-                              {materiaisBiblioteca.map((m) => (
-                                <option key={m.id} value={m.id}>{m.descricao} — {formatarMoeda(m.valor_unit_padrao)}/{m.unidade}</option>
-                              ))}
-                            </select>
-                          </label>
+                          <MaterialMultiSelect
+                            materiais={materiaisBiblioteca}
+                            selecionados={escolha.materialIds}
+                            onChange={(ids) => definirPickerMaterial(a.localId, ids)}
+                          />
                         )}
                       </div>
                     )}
@@ -539,7 +549,13 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
             comprimento: a.comprimento,
             largura: a.largura,
             peDireito: a.peDireito,
-            servicos: itens.filter((it) => it.ambienteLocalId === a.localId).map((it) => nomeServicoSemAmbiente(it.descricao)),
+            servicos: itens.filter((it) => it.ambienteLocalId === a.localId).map((it) => {
+              const base = nomeServicoSemAmbiente(it.descricao)
+              const nomesMateriais = it.materialItemIds
+                .map((id) => materiaisBiblioteca.find((m) => m.id === id)?.descricao)
+                .filter((n): n is string => !!n)
+              return nomesMateriais.length > 0 ? `${base} (${nomesMateriais.join(', ')})` : base
+            }),
           }))}
         />
       </div>

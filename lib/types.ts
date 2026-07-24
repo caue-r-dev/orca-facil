@@ -68,7 +68,14 @@ export interface ItemOrcamento {
   valor_unit: number
   ambiente_id: string | null
   origem_ambiente: OrigemAmbiente | null
+  // material_item_id (uuid único) é legado — pré multi-seleção de
+  // materiais. Mantido só como fallback de leitura pra orçamentos
+  // salvos antes de material_item_ids existir (ver migração 0013).
   material_item_id: string | null
+  material_item_ids: string[]
+  // Soma dos valor_unit_padrao de todos os materiais em
+  // material_item_ids — não multiplica por quantidade/área/perímetro
+  // (só a mão de obra multiplica).
   valor_material: number
 }
 

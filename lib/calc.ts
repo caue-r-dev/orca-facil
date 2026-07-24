@@ -10,13 +10,17 @@ export interface ResultadoCalculo {
 // Sem BDI: mão de obra já é o valor final decidido pelo prestador, e
 // material já embute sua própria margem (custo + %) — aplicar um
 // percentual por cima do total duplicaria a margem. Total = soma direta.
+//
+// valor_material (soma dos materiais por conta do prestador escolhidos
+// pra esse serviço) entra de forma fixa — só quantidade*valor_unit
+// (mão de obra) é multiplicado pela medida do ambiente.
 export function calcularOrcamento(
-  itens: Pick<ItemOrcamento, 'categoria' | 'quantidade' | 'valor_unit'>[]
+  itens: Pick<ItemOrcamento, 'categoria' | 'quantidade' | 'valor_unit' | 'valor_material'>[]
 ): ResultadoCalculo {
   let subtotalMaterial = 0
   let subtotalMaoObra = 0
   for (const item of itens) {
-    const valor = (Number(item.quantidade) || 0) * (Number(item.valor_unit) || 0)
+    const valor = (Number(item.quantidade) || 0) * (Number(item.valor_unit) || 0) + (Number(item.valor_material) || 0)
     if (item.categoria === 'material') subtotalMaterial += valor
     else subtotalMaoObra += valor
   }

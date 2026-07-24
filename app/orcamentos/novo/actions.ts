@@ -77,8 +77,8 @@ async function criarOrcamentoInterno(empresaId: string, payload: OrcamentoBuilde
       valor_unit: it.valor_unit,
       ambiente_id: it.ambienteLocalId !== null ? ambienteIdPorLocalId.get(it.ambienteLocalId) ?? null : null,
       origem_ambiente: it.origem_ambiente,
-      material_item_id: it.materialItemId,
-      valor_material: it.valorMaterial,
+      material_item_ids: it.materialItemIds,
+      valor_material: it.valor_material,
     }))
   )
 
