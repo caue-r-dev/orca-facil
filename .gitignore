@@ -37,3 +37,6 @@ next-env.d.ts
 
 # superpowers sdd scratch (briefs/reports/diffs, not durable project docs)
 /.superpowers/
+
+.vercel
+.env*

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { calcularValorVendaMaterial, formatarMoeda } from '@/lib/calc'
+import { NumeroInput } from '@/components/NumeroInput'
 
 export function CadastroMaterialForm({ adicionarMaterial }: { adicionarMaterial: (formData: FormData) => Promise<void> }) {
   const [custoAquisicao, setCustoAquisicao] = useState(0)
@@ -28,25 +29,23 @@ export function CadastroMaterialForm({ adicionarMaterial }: { adicionarMaterial:
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
           <label className="flex min-w-0 flex-col gap-1">
             <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">Custo de aquisição (R$)</span>
-            <input
-              type="number"
+            <NumeroInput
               step="0.01"
               min="0"
               name="custoAquisicao"
               value={custoAquisicao}
-              onChange={(e) => setCustoAquisicao(Number(e.target.value))}
+              onChange={setCustoAquisicao}
               className="font-mono-num w-full border-b border-line bg-transparent py-1 outline-none focus:border-brass"
             />
           </label>
           <label className="flex min-w-0 flex-col gap-1">
             <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">Margem (%)</span>
-            <input
-              type="number"
+            <NumeroInput
               step="0.01"
               min="0"
               name="margemPercentual"
               value={margemPercentual}
-              onChange={(e) => setMargemPercentual(Number(e.target.value))}
+              onChange={setMargemPercentual}
               className="font-mono-num w-full border-b border-line bg-transparent py-1 outline-none focus:border-brass"
             />
           </label>

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { SEGMENTOS } from '@/lib/segmentos-seed'
 import { formatarMoeda, nomeServicoSemAmbiente } from '@/lib/calc'
 import { OrcamentoPreview } from './OrcamentoPreview'
+import { NumeroInput } from './NumeroInput'
 import type { AmbienteOrcamento, Categoria, ItemBiblioteca, ItemOrcamento, MedidaAmbiente, ModoMedicao } from '@/lib/types'
 
 interface ItemForm {
@@ -344,7 +345,7 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">Validade (dias)</span>
-              <input type="number" value={validadeDias} onChange={(e) => setValidadeDias(Number(e.target.value))} className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+              <NumeroInput value={validadeDias} onChange={setValidadeDias} className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
             </label>
             <label className="flex flex-col gap-1 sm:col-span-2">
               <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">Condições de pagamento</span>
@@ -380,14 +381,14 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
 
                     <div className={`mt-3 grid grid-cols-1 gap-3 text-xs ${temParede ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
                       <label className="flex flex-col gap-1">Comprimento (m)
-                        <input type="number" step="0.01" min="0" value={a.comprimento} onChange={(e) => atualizarAmbiente(a.localId, { comprimento: Number(e.target.value) })} className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+                        <NumeroInput step="0.01" min="0" value={a.comprimento} onChange={(n) => atualizarAmbiente(a.localId, { comprimento: n })} className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
                       </label>
                       <label className="flex flex-col gap-1">Largura (m)
-                        <input type="number" step="0.01" min="0" value={a.largura} onChange={(e) => atualizarAmbiente(a.localId, { largura: Number(e.target.value) })} className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+                        <NumeroInput step="0.01" min="0" value={a.largura} onChange={(n) => atualizarAmbiente(a.localId, { largura: n })} className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
                       </label>
                       {temParede && (
                         <label className="flex flex-col gap-1">Pé-direito (m)
-                          <input type="number" step="0.01" min="0" value={a.peDireito} onChange={(e) => atualizarAmbiente(a.localId, { peDireito: Number(e.target.value) })} className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+                          <NumeroInput step="0.01" min="0" value={a.peDireito} onChange={(n) => atualizarAmbiente(a.localId, { peDireito: n })} className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
                         </label>
                       )}
                     </div>
