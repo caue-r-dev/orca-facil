@@ -3,7 +3,15 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 
-export const metadata = { title: 'Orça Fácil', description: 'Orçamentos profissionais para prestadores de serviço' }
+export const metadata = {
+  title: 'Orça Fácil',
+  description: 'Orçamentos profissionais para prestadores de serviço',
+  manifest: '/manifest.json',
+}
+
+export const viewport = {
+  themeColor: '#F5A623',
+}
 
 async function sair() {
   'use server'
