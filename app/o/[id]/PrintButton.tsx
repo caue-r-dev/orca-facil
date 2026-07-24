@@ -24,7 +24,20 @@ export function PrintButton() {
         import('jspdf'),
       ])
 
-      const canvas = await html2canvas(elemento, { scale: 2, backgroundColor: '#F5F2EB', useCORS: true })
+      // windowWidth força o html2canvas a clonar/renderizar o DOM como se
+      // a janela fosse desktop (1024px), independente da largura real do
+      // dispositivo que está gerando o PDF. Sem isso, no mobile o clone
+      // herda o viewport estreito da tela, os breakpoints sm: não ativam
+      // e as colunas em grid (fr) ficam apertadas — texto quebra em mais
+      // linhas e o PDF estoura pra 2-3 páginas.
+      const LARGURA_JANELA_CAPTURA = 1024
+      const canvas = await html2canvas(elemento, {
+        scale: 2,
+        backgroundColor: '#F5F2EB',
+        useCORS: true,
+        windowWidth: LARGURA_JANELA_CAPTURA,
+        windowHeight: elemento.scrollHeight,
+      })
       const imagem = canvas.toDataURL('image/jpeg', 0.95)
 
       const pdf = new jsPDF({ unit: 'mm', format: 'a4' })
