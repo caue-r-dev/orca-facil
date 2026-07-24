@@ -13,3 +13,13 @@ body {
     display: none !important;
   }
 }
+
+@layer components {
+  .label-mono {
+    font-family: theme("fontFamily.mono-num");
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 11px;
+    color: theme("colors.brand.text-secondary");
+  }
+}

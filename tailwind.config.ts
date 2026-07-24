@@ -18,6 +18,16 @@ const config: Config = {
         "brass-soft": "#E4C892",
         line: "#D8D2C2",
         danger: "#A3462F",
+        brand: {
+          bg: "#FAF7F2",
+          text: "#1A1A1A",
+          "text-secondary": "#5A5A52",
+          "text-tertiary": "#8A8578",
+          accent: "#D97706",
+          "accent-hover": "#C1660A",
+          border: "#E8E2D5",
+          "border-input": "#D8D2C4",
+        },
       },
       fontFamily: {
         "serif-body": ["Georgia", "serif"],

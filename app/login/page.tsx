@@ -2,8 +2,7 @@ import { LoginForm } from './LoginForm'
 
 export default function LoginPage() {
   return (
-    <main className="mx-auto max-w-md px-6 py-16">
-      <h1 className="text-2xl font-bold text-blueprint-deep">Entrar — Orça Fácil</h1>
+    <main className="flex min-h-screen items-center justify-center bg-brand-bg px-4 py-8">
       <LoginForm />
     </main>
   )
