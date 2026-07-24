@@ -78,13 +78,13 @@ export function OrcamentoPreview(props: OrcamentoPreviewProps) {
   const ambientes = props.ambientes ?? []
 
   return (
-    <div style={FUNDO_PAPEL} className="border border-line px-8 py-9 print:border-none print:shadow-none">
+    <div id="proposta-preview" style={FUNDO_PAPEL} className="border border-line px-8 py-9 print:border-none print:shadow-none">
 
       {/* Cabeçalho da empresa */}
       <div className="flex items-start gap-3">
         {props.logoUrl && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={props.logoUrl} alt={props.empresaNome || 'Logo'} className="h-12 w-auto object-contain" />
+          <img src={props.logoUrl} alt={props.empresaNome || 'Logo'} crossOrigin="anonymous" className="h-12 w-auto object-contain" />
         )}
         <div>
           <div className="font-serif-body text-2xl font-bold leading-tight" style={corDestaque}>{props.empresaNome || 'Sua Empresa'}</div>
