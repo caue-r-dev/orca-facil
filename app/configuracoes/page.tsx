@@ -45,58 +45,58 @@ export default async function ConfiguracoesPage() {
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-12">
-      <h1 className="text-2xl font-bold text-blueprint-deep">Configurações</h1>
+      <h1 className="font-serif-body text-2xl font-medium text-brand-text">Configurações</h1>
 
       <div className="mb-8 mt-8">
-        <div className="mb-3 text-xs font-bold uppercase tracking-wide text-brass">Dados da empresa</div>
-        <form action={salvarEmpresa} className="flex flex-col gap-4 border border-line bg-white p-4 sm:p-5">
+        <div className="label-mono mb-3 text-brand-accent">Dados da empresa</div>
+        <form action={salvarEmpresa} className="flex flex-col gap-4 border border-brand-border bg-white p-4 sm:p-5">
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">Nome</span>
-            <input name="nome" defaultValue={empresa?.nome} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+            <span className="label-mono">Nome</span>
+            <input name="nome" defaultValue={empresa?.nome} className="input-underline py-1 text-[15px] text-brand-text focus-visible:outline-none" />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">CNPJ</span>
-            <input name="cnpj" defaultValue={empresa?.cnpj ?? ''} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+            <span className="label-mono">CNPJ</span>
+            <input name="cnpj" defaultValue={empresa?.cnpj ?? ''} className="input-underline py-1 text-[15px] text-brand-text focus-visible:outline-none" />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">Telefone</span>
-            <input name="telefone" defaultValue={empresa?.telefone ?? ''} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+            <span className="label-mono">Telefone</span>
+            <input name="telefone" defaultValue={empresa?.telefone ?? ''} className="input-underline py-1 text-[15px] text-brand-text focus-visible:outline-none" />
           </label>
-          <button type="submit" className="mt-1 self-start rounded-sm bg-blueprint-deep px-4 py-2 text-sm font-bold text-paper">Salvar</button>
+          <button type="submit" className="btn-primary mt-1 self-start px-4 py-2.5 text-sm">Salvar</button>
         </form>
       </div>
 
       <div className="mb-8">
-        <div className="mb-3 text-xs font-bold uppercase tracking-wide text-brass">Logo da empresa</div>
-        <div className="flex flex-col gap-3 border border-line bg-white p-4 sm:p-5">
+        <div className="label-mono mb-3 text-brand-accent">Logo da empresa</div>
+        <div className="flex flex-col gap-3 border border-brand-border bg-white p-4 sm:p-5">
           {empresa?.logo_url && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={empresa.logo_url} alt="Logo atual" className="h-16 w-auto self-start object-contain" />
           )}
           <form action={salvarLogo} className="flex flex-wrap items-center gap-3 text-sm">
             <input type="file" name="logo" accept="image/png,image/jpeg,image/svg+xml,image/webp" required />
-            <button type="submit" className="rounded-sm bg-blueprint-deep px-4 py-2 text-sm font-bold text-paper">Enviar logo</button>
+            <button type="submit" className="btn-primary px-4 py-2.5 text-sm">Enviar logo</button>
           </form>
-          <p className="text-xs text-ink-soft">PNG, JPG, SVG ou WebP. Aparece só na proposta pública ({'/o/[id]'}), não no sistema.</p>
+          <p className="text-xs text-brand-text-tertiary">PNG, JPG, SVG ou WebP. Aparece só na proposta pública ({'/o/[id]'}), não no sistema.</p>
         </div>
       </div>
 
       <div>
-        <div className="mb-3 text-xs font-bold uppercase tracking-wide text-brass">Biblioteca de itens</div>
-        <div className="border border-line bg-white p-4 sm:p-5">
-          <details className="rounded-sm border border-brass bg-brass-soft/30">
-            <summary className="cursor-pointer list-none px-4 py-3 font-sans text-sm font-bold text-blueprint-deep">
+        <div className="label-mono mb-3 text-brand-accent">Biblioteca de itens</div>
+        <div className="border border-brand-border bg-white p-4 sm:p-5">
+          <details className="border border-brand-accent bg-brand-badge-bg/40">
+            <summary className="cursor-pointer list-none px-4 py-3 font-sans text-sm font-bold text-brand-text">
               + Cadastrar serviço
             </summary>
-            <form action={adicionarItem} className="grid grid-cols-1 gap-3 border-t border-brass px-4 py-4 text-sm sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
+            <form action={adicionarItem} className="grid grid-cols-1 gap-3 border-t border-brand-accent px-4 py-4 text-sm sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
               <input type="hidden" name="categoria" value="mao_obra" />
               <label className="flex min-w-0 flex-col gap-1">
-                <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">Descrição</span>
-                <input name="descricao" required className="w-full border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+                <span className="label-mono">Descrição</span>
+                <input name="descricao" required className="input-underline w-full py-1 text-[15px] text-brand-text focus-visible:outline-none" />
               </label>
               <label className="flex min-w-0 flex-col gap-1">
-                <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">Unidade</span>
-                <select name="unidade" defaultValue="un" className="w-full border-b border-line bg-transparent py-1 outline-none focus:border-brass">
+                <span className="label-mono">Unidade</span>
+                <select name="unidade" defaultValue="un" className="input-underline w-full py-1 text-[15px] text-brand-text focus-visible:outline-none">
                   <option value="m²">m² (metro quadrado)</option>
                   <option value="m">m (metro linear)</option>
                   <option value="un">un (unidade)</option>
@@ -106,22 +106,22 @@ export default async function ConfiguracoesPage() {
                 </select>
               </label>
               <label className="flex min-w-0 flex-col gap-1">
-                <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">Valor (R$)</span>
-                <input type="number" step="0.01" min="0" name="valorUnitPadrao" placeholder="0,00" className="font-mono-num w-full border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+                <span className="label-mono">Valor (R$)</span>
+                <input type="number" step="0.01" min="0" name="valorUnitPadrao" placeholder="0,00" className="input-underline font-mono-num w-full py-1 text-[15px] text-brand-text focus-visible:outline-none" />
               </label>
-              <button type="submit" className="w-full rounded-sm bg-blueprint-deep px-4 py-2 text-sm font-bold text-paper sm:w-auto">Salvar serviço</button>
+              <button type="submit" className="btn-primary w-full text-sm sm:w-auto px-4 py-2.5">Salvar serviço</button>
             </form>
           </details>
 
           <ul className="mt-4 flex flex-col gap-2">
             {(biblioteca ?? []).length === 0 && (
-              <li className="text-sm italic text-ink-soft">Nenhum serviço cadastrado ainda.</li>
+              <li className="text-sm italic text-brand-text-tertiary">Nenhum serviço cadastrado ainda.</li>
             )}
             {(biblioteca ?? []).map((item) => (
-              <li key={item.id} className="flex items-center justify-between rounded-sm bg-paper px-3 py-2.5 text-sm">
-                <span>{item.descricao} <span className="text-ink-soft">· R$ {item.valor_unit_padrao}/{item.unidade}</span></span>
+              <li key={item.id} className="flex items-center justify-between bg-brand-bg px-3 py-2.5 text-sm">
+                <span>{item.descricao} <span className="text-brand-text-tertiary">· R$ {item.valor_unit_padrao}/{item.unidade}</span></span>
                 <form action={async () => { 'use server'; await removerItemBiblioteca(item.id) }}>
-                  <button type="submit" className="text-danger">×</button>
+                  <button type="submit" className="text-danger focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-accent">×</button>
                 </form>
               </li>
             ))}

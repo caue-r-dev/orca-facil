@@ -88,7 +88,7 @@ export function NovaContaForm({ vencimentoPadrao }: { vencimentoPadrao: string }
         <input type="date" name="dataVencimento" required defaultValue={vencimentoPadrao} className="font-mono-num border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
       </label>
       {erro && <p className="text-sm text-danger">{erro}</p>}
-      <button type="submit" disabled={enviando} className="mt-4 rounded-sm bg-blueprint-deep px-5 py-3 font-sans font-bold text-paper disabled:opacity-50">
+      <button type="submit" disabled={enviando} className="btn-primary mt-4 px-5 py-3">
         {enviando ? 'Criando…' : 'Criar conta'}
       </button>
     </form>

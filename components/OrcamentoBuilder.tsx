@@ -515,7 +515,7 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
 
         {erro && <p className="mb-4 text-sm text-danger">{erro}</p>}
 
-        <button onClick={salvar} disabled={salvando} className="rounded-sm bg-blueprint-deep px-5 py-3 font-sans font-bold text-paper disabled:opacity-50">
+        <button onClick={salvar} disabled={salvando} className="btn-primary px-5 py-3">
           {salvando ? 'Salvando…' : 'Salvar orçamento'}
         </button>
       </div>

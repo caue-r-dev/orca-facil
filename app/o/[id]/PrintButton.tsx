@@ -71,7 +71,7 @@ export function PrintButton() {
 
   return (
     <div className="no-print mt-5">
-      <button onClick={gerarPdf} disabled={gerando} className="rounded-sm bg-blueprint-deep px-5 py-3 font-sans font-bold text-paper disabled:opacity-50">
+      <button onClick={gerarPdf} disabled={gerando} className="btn-primary px-5 py-3">
         {gerando ? 'Gerando PDF…' : 'Gerar PDF'}
       </button>
       {erro && <p className="mt-2 text-sm text-danger">{erro}</p>}

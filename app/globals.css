@@ -22,4 +22,46 @@ body {
     font-size: 11px;
     color: theme("colors.brand.text-secondary");
   }
+
+  .btn-primary {
+    font-family: theme("fontFamily.sans");
+    background-color: theme("colors.brand.accent");
+    color: #fff;
+    border: 1.5px solid theme("colors.brand.text");
+    border-radius: 0;
+    font-weight: 500;
+    transition: filter 0.15s ease;
+  }
+  .btn-primary:hover:not(:disabled) {
+    filter: brightness(0.92);
+  }
+  .btn-primary:focus-visible {
+    outline: 2px solid theme("colors.brand.text");
+    outline-offset: 2px;
+  }
+  .btn-primary:disabled {
+    opacity: 0.5;
+  }
+
+  .badge-status {
+    background-color: theme("colors.brand.badge-bg");
+    border: 1px solid theme("colors.brand.accent");
+    color: theme("colors.brand.badge-text");
+    font-family: theme("fontFamily.mono-num");
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 10px;
+    padding: 4px 10px;
+  }
+
+  .input-underline {
+    border: none;
+    border-bottom: 1px solid theme("colors.brand.border-input");
+    background-color: transparent;
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+  .input-underline:focus {
+    border-bottom-color: theme("colors.brand.accent");
+  }
 }

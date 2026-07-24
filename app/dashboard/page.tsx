@@ -15,7 +15,7 @@ export default async function DashboardPage() {
     <main className="mx-auto max-w-4xl px-6 py-12">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-blueprint-deep">Meus orçamentos</h1>
-        <Link href="/orcamentos/novo" className="rounded-sm bg-blueprint-deep px-4 py-2 font-sans text-sm font-bold text-paper">
+        <Link href="/orcamentos/novo" className="btn-primary px-4 py-2 text-sm">
           + Novo orçamento
         </Link>
       </div>
@@ -30,7 +30,7 @@ export default async function DashboardPage() {
             <li key={o.id} className="flex flex-col gap-2 border border-line bg-white px-4 py-4 transition-colors hover:border-brass sm:px-5">
               <Link href={`/orcamentos/${o.id}`} className="flex items-center justify-between">
                 <span className="font-bold text-blueprint-deep">{o.cliente_nome}</span>
-                <span className={`font-mono-num rounded-sm px-2.5 py-1 text-[10px] uppercase tracking-wide ${o.status === 'enviado' ? 'bg-brass-soft text-blueprint-deep' : 'bg-paper text-ink-soft'}`}>
+                <span className={o.status === 'enviado' ? 'badge-status' : 'font-mono-num px-2.5 py-1 text-[10px] uppercase tracking-wide bg-paper text-ink-soft'}>
                   {o.status === 'enviado' ? 'publicado' : o.status}
                 </span>
               </Link>

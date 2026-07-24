@@ -49,7 +49,7 @@ export function CadastroMaterialForm({ adicionarMaterial }: { adicionarMaterial:
               className="font-mono-num w-full border-b border-line bg-transparent py-1 outline-none focus:border-brass"
             />
           </label>
-          <button type="submit" className="w-full rounded-sm bg-blueprint-deep px-4 py-2 text-sm font-bold text-paper sm:w-auto">Salvar material</button>
+          <button type="submit" className="btn-primary w-full px-4 py-2 text-sm sm:w-auto">Salvar material</button>
         </div>
         <div className="font-mono-num text-xs text-ink-soft">
           {formatarMoeda(custoAquisicao)} + {margemPercentual}% = {formatarMoeda(valorVenda)}/{unidade}

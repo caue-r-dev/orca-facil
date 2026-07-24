@@ -63,7 +63,7 @@ export default async function AdminPage() {
     <main className="mx-auto max-w-6xl px-6 py-12">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-blueprint-deep">Admin — Prestadores</h1>
-        <Link href="/admin/nova-conta" className="rounded-sm bg-blueprint-deep px-4 py-2 font-sans text-sm font-bold text-paper">
+        <Link href="/admin/nova-conta" className="btn-primary px-4 py-2 text-sm">
           + Criar conta de prestador
         </Link>
       </div>

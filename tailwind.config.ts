@@ -27,6 +27,9 @@ const config: Config = {
           "accent-hover": "#C1660A",
           border: "#E8E2D5",
           "border-input": "#D8D2C4",
+          "nav-link": "#C9C4B6",
+          "badge-bg": "#FAEEDA",
+          "badge-text": "#8A5A1A",
         },
       },
       fontFamily: {

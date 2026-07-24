@@ -46,7 +46,7 @@ export default function CadastroPage() {
           Senha
           <input type="password" name="senha" required minLength={6} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
         </label>
-        <button type="submit" className="mt-4 rounded-sm bg-blueprint-deep px-5 py-3 font-sans font-bold text-paper">
+        <button type="submit" className="btn-primary mt-4 px-5 py-3">
           Criar conta
         </button>
       </form>
