@@ -78,7 +78,7 @@ export function OrcamentoPreview(props: OrcamentoPreviewProps) {
   const ambientes = props.ambientes ?? []
 
   return (
-    <div id="proposta-preview" style={FUNDO_PAPEL} className="border border-line px-8 py-9 print:border-none print:p-0 print:shadow-none">
+    <div style={FUNDO_PAPEL} className="border border-line px-8 py-9 print:border-none print:shadow-none">
 
       {/* Cabeçalho da empresa */}
       <div className="flex items-start gap-3">

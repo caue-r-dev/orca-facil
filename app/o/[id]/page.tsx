@@ -28,7 +28,7 @@ export default async function OrcamentoPublicoPage({ params }: { params: Promise
   }))
 
   return (
-    <main className="mx-auto max-w-2xl px-5 py-10 print:max-w-none print:p-0">
+    <main className="mx-auto max-w-2xl px-5 py-10">
       <OrcamentoPreview
         empresaNome={empresa?.nome ?? ''}
         cnpj={empresa?.cnpj}
