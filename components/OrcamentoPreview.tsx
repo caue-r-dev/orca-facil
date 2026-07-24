@@ -124,7 +124,7 @@ export function OrcamentoPreview(props: OrcamentoPreviewProps) {
       {ambientes.length > 0 && (
         <div className="mb-6">
           <div className="mb-2 text-xs font-bold uppercase tracking-wide text-brass">Ambientes e Medidas</div>
-          <div className="grid grid-cols-[1.5fr_1.1fr_0.8fr_0.8fr_1.6fr] gap-x-2 border-b border-ink pb-1.5 pt-1 text-[10px] font-bold uppercase tracking-wide" style={{ borderTop: '2px solid #1E2521' }}>
+          <div className="grid grid-cols-[minmax(0,1.5fr)_minmax(0,1.1fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,1.6fr)] gap-x-2 border-b border-ink pb-1.5 pt-1 text-[10px] font-bold uppercase tracking-wide" style={{ borderTop: '2px solid #1E2521' }}>
             <span>Ambiente</span>
             <span>Dimensões</span>
             <span className="text-center">Pé-direito</span>
@@ -132,12 +132,12 @@ export function OrcamentoPreview(props: OrcamentoPreviewProps) {
             <span>Forro/Piso</span>
           </div>
           {ambientes.map((a, i) => (
-            <div key={i} className="grid grid-cols-[1.5fr_1.1fr_0.8fr_0.8fr_1.6fr] gap-x-2 border-b border-dotted border-line py-1.5 text-xs">
-              <span className="font-serif-body">{a.nome}</span>
+            <div key={i} className="grid grid-cols-[minmax(0,1.5fr)_minmax(0,1.1fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,1.6fr)] gap-x-2 border-b border-dotted border-line py-1.5 text-xs">
+              <span className="font-serif-body break-words">{a.nome}</span>
               <span className="font-mono-num">{a.comprimento}m × {a.largura}m</span>
               <span className="font-mono-num text-center">{a.peDireito ? `${a.peDireito}m` : '—'}</span>
               <span className="font-mono-num text-center">{calcularPerimetro(a)}m</span>
-              <span>{a.servicos.length > 0 ? a.servicos.join(', ') : '—'}</span>
+              <span className="break-words">{a.servicos.length > 0 ? a.servicos.join(', ') : '—'}</span>
             </div>
           ))}
         </div>
@@ -146,7 +146,7 @@ export function OrcamentoPreview(props: OrcamentoPreviewProps) {
       {/* Orçamento detalhado */}
       <div className="mb-6">
         <div className="mb-2 text-xs font-bold uppercase tracking-wide text-brass">Orçamento Detalhado</div>
-        <div className="grid grid-cols-[0.3fr_2.2fr_0.6fr_0.5fr_0.9fr_0.9fr] gap-x-2 border-b border-ink pb-1.5 pt-1 text-[10px] font-bold uppercase tracking-wide" style={{ borderTop: '2px solid #1E2521' }}>
+        <div className="grid grid-cols-[minmax(0,0.3fr)_minmax(0,2.2fr)_minmax(0,0.6fr)_minmax(0,0.5fr)_minmax(0,0.9fr)_minmax(0,0.9fr)] gap-x-2 border-b border-ink pb-1.5 pt-1 text-[10px] font-bold uppercase tracking-wide" style={{ borderTop: '2px solid #1E2521' }}>
           <span>#</span>
           <span>Descrição do Serviço</span>
           <span className="text-center">Qtd</span>
@@ -160,9 +160,9 @@ export function OrcamentoPreview(props: OrcamentoPreviewProps) {
         ) : (
           <div className="font-mono-num text-xs">
             {props.itens.map((it, i) => (
-              <div key={i} className="grid grid-cols-[0.3fr_2.2fr_0.6fr_0.5fr_0.9fr_0.9fr] gap-x-2 border-b border-dotted border-line py-1.5">
+              <div key={i} className="grid grid-cols-[minmax(0,0.3fr)_minmax(0,2.2fr)_minmax(0,0.6fr)_minmax(0,0.5fr)_minmax(0,0.9fr)_minmax(0,0.9fr)] gap-x-2 border-b border-dotted border-line py-1.5">
                 <span>{i + 1}</span>
-                <span className="font-serif-body">{it.descricao || 'Item sem nome'}</span>
+                <span className="font-serif-body break-words">{it.descricao || 'Item sem nome'}</span>
                 <span className="text-center">{it.quantidade}</span>
                 <span className="text-center">{it.unidade}</span>
                 <span className="text-right">{formatarMoeda(Number(it.valor_unit) || 0)}</span>

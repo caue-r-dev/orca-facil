@@ -5,10 +5,14 @@ import { useEffect } from 'react'
 // px -> mm a 96dpi (padrão CSS).
 const PX_POR_MM = 96 / 25.4
 const MARGEM_PAGINA_MM = 14
-// Folga pra absorver a diferença entre o padding em tela (px-8 py-9) e o
-// padding de impressão (print:px-6 print:py-6) medidos antes do @media
-// print entrar em vigor — evita cortar conteúdo por um cálculo justo demais.
-const FOLGA_MM = 8
+// scrollHeight é medido em tela, antes do @media print entrar em vigor —
+// nesse momento #proposta-preview ainda tem o padding de tela (py-9 =
+// 36px topo + 36px base), que não existe na impressão (print:p-0). Sem
+// descontar isso, a altura de página calculada fica maior que o
+// conteúdo impresso real e sobra espaço em branco embaixo.
+const PADDING_TELA_VERTICAL_PX = 36 * 2
+// Folga pequena só pra arredondamento/fontes, não pra compensar padding.
+const FOLGA_MM = 3
 
 export function PrintButton() {
   // 'beforeprint' cobre tanto o clique no botão quanto Ctrl+P/menu do
@@ -20,7 +24,8 @@ export function PrintButton() {
     function ajustarAlturaPagina() {
       const conteudo = document.getElementById('proposta-preview')
       if (!conteudo) return
-      const alturaPaginaMm = Math.ceil(conteudo.scrollHeight / PX_POR_MM + MARGEM_PAGINA_MM * 2 + FOLGA_MM)
+      const alturaConteudoPx = conteudo.scrollHeight - PADDING_TELA_VERTICAL_PX
+      const alturaPaginaMm = Math.ceil(alturaConteudoPx / PX_POR_MM + MARGEM_PAGINA_MM * 2 + FOLGA_MM)
       styleTag = document.createElement('style')
       // Sobrescreve só o size do @page global (que continua fornecendo o
       // margin): página com largura A4 fixa mas altura ajustada ao
