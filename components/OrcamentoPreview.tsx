@@ -50,6 +50,11 @@ interface OrcamentoPreviewProps {
   // true só na página pública (/o/[id]): esconde o detalhamento
   // Materiais/Mão de obra do cliente, mostrando só o Total.
   publico?: boolean
+  // Configurável por orçamento (coluna ocultar_valor_unitario) — esconde
+  // só o "Preço Unit." dos itens de mão de obra na tabela detalhada. O
+  // Total de cada linha e o Total Geral continuam aparecendo normalmente,
+  // já que o cálculo não muda, só a exibição do valor unitário.
+  ocultarValorUnitario?: boolean
 }
 
 // Grade sutil "papel de blueprint técnico" — mesmo padrão do
@@ -168,7 +173,9 @@ export function OrcamentoPreview(props: OrcamentoPreviewProps) {
                 <span className="font-serif-body break-words">{it.descricao || 'Item sem nome'}</span>
                 <span className="text-center">{it.quantidade}</span>
                 <span className="text-center">{it.unidade}</span>
-                <span className="text-right">{formatarMoeda(Number(it.valor_unit) || 0)}</span>
+                <span className="text-right">
+                  {it.categoria === 'mao_obra' && props.ocultarValorUnitario ? '—' : formatarMoeda(Number(it.valor_unit) || 0)}
+                </span>
                 <span className="text-right">{formatarMoeda((Number(it.quantidade) || 0) * (Number(it.valor_unit) || 0) + (Number(it.valor_material) || 0))}</span>
               </div>
             ))}

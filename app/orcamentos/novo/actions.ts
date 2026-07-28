@@ -33,6 +33,7 @@ async function criarOrcamentoInterno(empresaId: string, payload: OrcamentoBuilde
       prazo_execucao: payload.prazoExecucao || null,
       validade_dias: payload.validadeDias,
       forma_pagamento: payload.formaPagamento || null,
+      ocultar_valor_unitario: payload.ocultarValorUnitario,
       bdi: 0,
       status: 'rascunho',
     })

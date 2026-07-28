@@ -45,6 +45,7 @@ export default async function OrcamentoPublicoPage({ params }: { params: Promise
         ambientes={ambientesPreview}
         logoUrl={empresa?.logo_url ?? null}
         corPrimaria={empresa?.cor_primaria}
+        ocultarValorUnitario={orcamento.ocultar_valor_unitario}
         publico
       />
       <PrintButton />

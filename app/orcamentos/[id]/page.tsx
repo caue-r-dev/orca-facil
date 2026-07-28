@@ -49,6 +49,7 @@ export default async function EditarOrcamentoPage({ params }: { params: Promise<
         prazoExecucao: orcamento.prazo_execucao ?? '',
         validadeDias: orcamento.validade_dias,
         formaPagamento: orcamento.forma_pagamento ?? '',
+        ocultarValorUnitario: orcamento.ocultar_valor_unitario,
         itens: itens ?? [],
         ambientes: ambientes ?? [],
       }}

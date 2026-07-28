@@ -86,6 +86,7 @@ export interface OrcamentoBuilderPayload {
   prazoExecucao: string
   validadeDias: number
   formaPagamento: string
+  ocultarValorUnitario: boolean
   ambientes: AmbientePayload[]
   itens: ItemForm[]
 }
@@ -108,6 +109,7 @@ interface OrcamentoBuilderProps {
     prazoExecucao: string
     validadeDias: number
     formaPagamento: string
+    ocultarValorUnitario: boolean
     itens: ItemOrcamento[]
     ambientes: AmbienteOrcamento[]
   }
@@ -130,6 +132,7 @@ interface RascunhoOrcamento {
   prazoExecucao: string
   validadeDias: number
   formaPagamento: string
+  ocultarValorUnitario: boolean
   ambientes: AmbientePayload[]
   itens: (ItemForm & { localId: number })[]
 }
@@ -193,17 +196,18 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
   const [prazoExecucao, setPrazoExecucao] = useState(rascunho?.prazoExecucao ?? valoresIniciais?.prazoExecucao ?? '')
   const [validadeDias, setValidadeDias] = useState(rascunho?.validadeDias ?? valoresIniciais?.validadeDias ?? 7)
   const [formaPagamento, setFormaPagamento] = useState(rascunho?.formaPagamento ?? valoresIniciais?.formaPagamento ?? '50% de entrada, 50% na entrega')
+  const [ocultarValorUnitario, setOcultarValorUnitario] = useState(rascunho?.ocultarValorUnitario ?? valoresIniciais?.ocultarValorUnitario ?? false)
   const [erro, setErro] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
 
   useEffect(() => {
     if (!isNovo) return
     const timer = setTimeout(() => {
-      const draft: RascunhoOrcamento = { clienteNome, clienteContato, obraEndereco, prazoExecucao, validadeDias, formaPagamento, ambientes, itens }
+      const draft: RascunhoOrcamento = { clienteNome, clienteContato, obraEndereco, prazoExecucao, validadeDias, formaPagamento, ocultarValorUnitario, ambientes, itens }
       window.localStorage.setItem(RASCUNHO_KEY, JSON.stringify(draft))
     }, 400)
     return () => clearTimeout(timer)
-  }, [isNovo, clienteNome, clienteContato, obraEndereco, prazoExecucao, validadeDias, formaPagamento, ambientes, itens])
+  }, [isNovo, clienteNome, clienteContato, obraEndereco, prazoExecucao, validadeDias, formaPagamento, ocultarValorUnitario, ambientes, itens])
 
   function adicionarAmbiente() {
     const novo: AmbientePayload = {
@@ -303,7 +307,7 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
     if (isNovo) window.localStorage.removeItem(RASCUNHO_KEY)
     try {
       const resultado = await onSalvar({
-        clienteNome, clienteContato, obraEndereco, prazoExecucao, validadeDias, formaPagamento,
+        clienteNome, clienteContato, obraEndereco, prazoExecucao, validadeDias, formaPagamento, ocultarValorUnitario,
         ambientes,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         itens: itens.map(({ localId, ...rest }) => rest),
@@ -360,6 +364,10 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
             <label className="flex flex-col gap-1 sm:col-span-2">
               <span className="text-[10px] font-bold uppercase tracking-wide text-ink-soft">Condições de pagamento</span>
               <input value={formaPagamento} onChange={(e) => setFormaPagamento(e.target.value)} className="border-b border-line bg-transparent py-1 outline-none focus:border-brass" />
+            </label>
+            <label className="flex items-center gap-2 sm:col-span-2">
+              <input type="checkbox" checked={ocultarValorUnitario} onChange={(e) => setOcultarValorUnitario(e.target.checked)} className="h-4 w-4 accent-brass" />
+              <span className="text-xs text-ink-soft">Ocultar valor unitário da mão de obra na proposta</span>
             </label>
           </div>
         </div>

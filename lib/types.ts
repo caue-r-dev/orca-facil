@@ -50,6 +50,7 @@ export interface Orcamento {
   prazo_execucao: string | null
   validade_dias: number
   forma_pagamento: string | null
+  ocultar_valor_unitario: boolean
   status: OrcamentoStatus
   created_at: string
   updated_at: string
