@@ -81,6 +81,7 @@ export async function adicionarItemBiblioteca(
   if (error) return { error: error.message }
   revalidatePath('/configuracoes')
   revalidatePath('/materiais')
+  revalidatePath('/servicos')
   return {}
 }
 
@@ -90,5 +91,6 @@ export async function removerItemBiblioteca(itemId: string): Promise<{ error?: s
   if (error) return { error: error.message }
   revalidatePath('/configuracoes')
   revalidatePath('/materiais')
+  revalidatePath('/servicos')
   return {}
 }
