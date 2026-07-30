@@ -177,12 +177,12 @@ export function OrcamentoPreview(props: OrcamentoPreviewProps) {
                 <span>{i + 1}</span>
                 <span className="font-serif-body break-words">
                   {it.descricao || 'Item sem nome'}
-                  {it.observacoes && <div className="mt-0.5 text-[10px] italic text-ink-soft break-words">{it.observacoes}</div>}
+                  {it.observacoes && <span className="mt-0.5 block text-[10px] italic text-ink-soft break-words">{it.observacoes}</span>}
                 </span>
                 <span className="text-center">{it.quantidade}</span>
                 <span className="text-center">{it.unidade}</span>
                 <span className="text-right">
-                  {it.categoria === 'mao_obra' && props.ocultarValorUnitario ? '—' : formatarMoeda(Number(it.valor_unit) || 0)}
+                  {it.valor_customizado !== null || (it.categoria === 'mao_obra' && props.ocultarValorUnitario) ? '—' : formatarMoeda(Number(it.valor_unit) || 0)}
                 </span>
                 <span className="text-right">{formatarMoeda(valorFinalItem(it))}</span>
               </div>
