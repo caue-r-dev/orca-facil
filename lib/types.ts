@@ -78,6 +78,15 @@ export interface ItemOrcamento {
   // material_item_ids — não multiplica por quantidade/área/perímetro
   // (só a mão de obra multiplica).
   valor_material: number
+  // Quando preenchido, é o valor final da linha nesse orçamento
+  // específico (substitui quantidade*valor_unit+valor_material). NULL =
+  // segue calculado normalmente. Nunca sobrescrito por recálculo de
+  // medida do ambiente nem propagado de volta ao preço-base da
+  // biblioteca — ver migração 0015.
+  valor_customizado: number | null
+  // Texto livre opcional por item, aparece na proposta/PDF junto da
+  // descrição do serviço — ver migração 0015.
+  observacoes: string | null
 }
 
 export interface AmbienteOrcamento {

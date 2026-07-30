@@ -24,6 +24,13 @@ interface ItemForm {
   // Soma dos valor_unit_padrao dos materiais em materialItemIds — flat,
   // não multiplica por quantidade (ver calcularOrcamento).
   valor_material: number
+  // Quando preenchido, é o valor final da linha nesse orçamento
+  // específico (substitui quantidade*valor_unit+valor_material). NULL =
+  // segue calculado normalmente.
+  valor_customizado: number | null
+  // Texto livre opcional por item, aparece na proposta/PDF junto da
+  // descrição do serviço.
+  observacoes: string | null
 }
 
 interface AmbienteForm {
