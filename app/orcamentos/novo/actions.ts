@@ -80,6 +80,8 @@ async function criarOrcamentoInterno(empresaId: string, payload: OrcamentoBuilde
       origem_ambiente: it.origem_ambiente,
       material_item_ids: it.materialItemIds,
       valor_material: it.valor_material,
+      valor_customizado: it.valor_customizado,
+      observacoes: it.observacoes || null,
     }))
   )
 
