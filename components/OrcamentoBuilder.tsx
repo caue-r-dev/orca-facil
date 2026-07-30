@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { SEGMENTOS } from '@/lib/segmentos-seed'
-import { formatarMoeda, nomeServicoSemAmbiente } from '@/lib/calc'
+import { formatarMoeda, nomeServicoSemAmbiente, valorFinalItem } from '@/lib/calc'
 import { OrcamentoPreview } from './OrcamentoPreview'
 import { NumeroInput } from './NumeroInput'
 import { MaterialMultiSelect } from './MaterialMultiSelect'
@@ -24,6 +24,11 @@ interface ItemForm {
   // Soma dos valor_unit_padrao dos materiais em materialItemIds — flat,
   // não multiplica por quantidade (ver calcularOrcamento).
   valor_material: number
+  // Override manual do valor final da linha nesse orçamento — ver
+  // valorFinalItem em lib/calc.ts. NULL = segue calculado normalmente.
+  valor_customizado: number | null
+  // Texto livre opcional, aparece na proposta/PDF.
+  observacoes: string
 }
 
 interface AmbienteForm {
@@ -172,7 +177,11 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
   const servicosBiblioteca = biblioteca.filter((item) => item.categoria === 'mao_obra')
   const [ambientes, setAmbientes] = useState<AmbientePayload[]>(rascunho?.ambientes ?? ambientesIniciais)
   const [itens, setItens] = useState<(ItemForm & { localId: number })[]>(
-    rascunho?.itens ?? (valoresIniciais?.itens ?? []).map((it) => ({
+    rascunho?.itens.map((it) => ({
+      ...it,
+      valor_customizado: it.valor_customizado ?? null,
+      observacoes: it.observacoes ?? '',
+    })) ?? (valoresIniciais?.itens ?? []).map((it) => ({
       ...it,
       localId: nextLocalId++,
       ambienteLocalId: it.ambiente_id ? ambienteLocalIdPorDbId.get(it.ambiente_id) ?? null : null,
@@ -184,6 +193,8 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
         ? it.material_item_ids
         : (it.material_item_id ? [it.material_item_id] : []),
       valor_material: it.valor_material,
+      valor_customizado: it.valor_customizado ?? null,
+      observacoes: it.observacoes ?? '',
     }))
   )
   const [picker, setPicker] = useState<Record<number, PickerAmbiente>>({})
@@ -281,6 +292,8 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
         origem_ambiente: escolha.medida,
         materialItemIds: materiais.map((m) => m.id),
         valor_material: valorMaterial,
+        valor_customizado: null,
+        observacoes: '',
       },
     ])
     setPicker((prev) => ({ ...prev, [ambienteLocalId]: { servicoId: '', medida: escolha.medida, materialAberto: false, materialIds: [] } }))
@@ -288,6 +301,25 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
 
   function removerItem(localId: number) {
     setItens((prev) => prev.filter((it) => it.localId !== localId))
+  }
+
+  // Marca override ativo pra esse item — quantidade/valor_unit/
+  // valor_material continuam existindo (e a medida do ambiente
+  // continua recalculando quantidade em atualizarAmbiente), mas
+  // valorFinalItem() passa a ignorar tudo isso e usar direto este
+  // valor até o override ser removido.
+  function definirValorCustomizado(localId: number, valor: number) {
+    setItens((prev) => prev.map((it) => (it.localId === localId ? { ...it, valor_customizado: valor } : it)))
+  }
+
+  // "Recalcular automaticamente": volta a usar quantidade*valor_unit+
+  // valor_material — não desfaz nenhuma medida, só limpa o override.
+  function removerValorCustomizado(localId: number) {
+    setItens((prev) => prev.map((it) => (it.localId === localId ? { ...it, valor_customizado: null } : it)))
+  }
+
+  function definirObservacoes(localId: number, texto: string) {
+    setItens((prev) => prev.map((it) => (it.localId === localId ? { ...it, observacoes: texto } : it)))
   }
 
   async function salvar() {
@@ -377,7 +409,7 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
           <div className="flex flex-col gap-2.5">
             {ambientes.map((a) => {
               const itensDoAmbiente = itens.filter((it) => it.ambienteLocalId === a.localId)
-              const totalAmbiente = itensDoAmbiente.reduce((soma, it) => soma + it.quantidade * it.valor_unit + it.valor_material, 0)
+              const totalAmbiente = itensDoAmbiente.reduce((soma, it) => soma + valorFinalItem(it), 0)
               const escolha = pickerPadrao(a.localId, picker)
 
               return (
@@ -439,26 +471,64 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
 
                     {itensDoAmbiente.length > 0 && (
                       <div className="mb-3 flex flex-col gap-3">
-                        {itensDoAmbiente.map((it) => (
-                          <div key={it.localId} className="rounded-sm bg-paper p-3.5">
-                            <div className="flex items-start justify-between gap-2">
-                              <div>
-                                <div className="text-xs font-bold text-blueprint-deep">{it.descricao}</div>
-                                <div className="mt-1 font-mono-num text-xs text-ink-soft">
-                                  {it.origem_ambiente && MEDIDA_LABEL[it.origem_ambiente] ? MEDIDA_LABEL[it.origem_ambiente] : 'Manual'} · {it.quantidade.toFixed(2)}{it.unidade} × {formatarMoeda(it.valor_unit)}
-                                  {it.valor_material > 0 && ` + ${formatarMoeda(it.valor_material)}`}
-                                  {' '}= {formatarMoeda(it.quantidade * it.valor_unit + it.valor_material)}
-                                </div>
-                                {it.materialItemIds.length > 0 && (
-                                  <div className="mt-0.5 text-[11px] text-ink-soft">
-                                    Materiais: {it.materialItemIds.map((id) => materiaisBiblioteca.find((m) => m.id === id)?.descricao).filter(Boolean).join(', ')}
+                        {itensDoAmbiente.map((it) => {
+                          const valorFinal = valorFinalItem(it)
+                          const temOverride = it.valor_customizado !== null
+                          return (
+                            <div key={it.localId} className="rounded-sm bg-paper p-3.5">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1">
+                                  <div className="text-xs font-bold text-blueprint-deep">{it.descricao}</div>
+                                  <div className="mt-1 font-mono-num text-xs text-ink-soft">
+                                    {it.origem_ambiente && MEDIDA_LABEL[it.origem_ambiente] ? MEDIDA_LABEL[it.origem_ambiente] : 'Manual'} · {it.quantidade.toFixed(2)}{it.unidade} × {formatarMoeda(it.valor_unit)}
+                                    {it.valor_material > 0 && ` + ${formatarMoeda(it.valor_material)}`}
+                                    {' '}= {formatarMoeda(it.quantidade * it.valor_unit + it.valor_material)}
+                                    {temOverride && <span className="ml-1 text-brass">(calculado)</span>}
                                   </div>
-                                )}
+                                  {it.materialItemIds.length > 0 && (
+                                    <div className="mt-0.5 text-[11px] text-ink-soft">
+                                      Materiais: {it.materialItemIds.map((id) => materiaisBiblioteca.find((m) => m.id === id)?.descricao).filter(Boolean).join(', ')}
+                                    </div>
+                                  )}
+                                  <div className="mt-2 flex flex-wrap items-end gap-2">
+                                    <label className="flex flex-col gap-1 text-[10px] font-bold uppercase tracking-wide text-ink-soft">
+                                      Valor deste serviço (R$)
+                                      <NumeroInput
+                                        step="0.01"
+                                        min="0"
+                                        value={valorFinal}
+                                        onChange={(n) => definirValorCustomizado(it.localId, n)}
+                                        className="font-mono-num w-28 border-b border-line bg-transparent py-1 text-xs outline-none focus:border-brass"
+                                      />
+                                    </label>
+                                    {temOverride && (
+                                      <>
+                                        <span className="rounded-sm bg-brass-soft px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-blueprint-deep">Valor customizado</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => removerValorCustomizado(it.localId)}
+                                          className="text-[11px] text-ink-soft underline"
+                                        >
+                                          Recalcular automaticamente
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                  <label className="mt-2 flex flex-col gap-1 text-[10px] font-bold uppercase tracking-wide text-ink-soft">
+                                    Descrição adicional (opcional)
+                                    <input
+                                      value={it.observacoes}
+                                      onChange={(e) => definirObservacoes(it.localId, e.target.value)}
+                                      placeholder="Observações específicas desse serviço nesse orçamento"
+                                      className="w-full border-b border-line bg-transparent py-1 text-xs font-normal normal-case outline-none focus:border-brass"
+                                    />
+                                  </label>
+                                </div>
+                                <button onClick={() => removerItem(it.localId)} className="text-danger">×</button>
                               </div>
-                              <button onClick={() => removerItem(it.localId)} className="text-danger">×</button>
                             </div>
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     )}
 
