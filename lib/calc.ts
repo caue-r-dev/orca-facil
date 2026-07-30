@@ -7,20 +7,31 @@ export interface ResultadoCalculo {
   total: number
 }
 
+// Valor final de UM item: se valor_customizado foi definido (override
+// manual do usuário nesse orçamento específico), ele é o valor final e
+// ignora quantidade/valor_unit/valor_material. Caso contrário, segue o
+// cálculo normal. Única fonte de verdade pro valor de um item — usada
+// aqui, no total por ambiente (OrcamentoBuilder) e na proposta/PDF
+// (OrcamentoPreview), pra nunca haver 3 fórmulas divergentes.
+export function valorFinalItem(
+  item: Pick<ItemOrcamento, 'quantidade' | 'valor_unit' | 'valor_material' | 'valor_customizado'>
+): number {
+  if (item.valor_customizado !== null && item.valor_customizado !== undefined) {
+    return Number(item.valor_customizado) || 0
+  }
+  return (Number(item.quantidade) || 0) * (Number(item.valor_unit) || 0) + (Number(item.valor_material) || 0)
+}
+
 // Sem BDI: mão de obra já é o valor final decidido pelo prestador, e
 // material já embute sua própria margem (custo + %) — aplicar um
 // percentual por cima do total duplicaria a margem. Total = soma direta.
-//
-// valor_material (soma dos materiais por conta do prestador escolhidos
-// pra esse serviço) entra de forma fixa — só quantidade*valor_unit
-// (mão de obra) é multiplicado pela medida do ambiente.
 export function calcularOrcamento(
-  itens: Pick<ItemOrcamento, 'categoria' | 'quantidade' | 'valor_unit' | 'valor_material'>[]
+  itens: Pick<ItemOrcamento, 'categoria' | 'quantidade' | 'valor_unit' | 'valor_material' | 'valor_customizado'>[]
 ): ResultadoCalculo {
   let subtotalMaterial = 0
   let subtotalMaoObra = 0
   for (const item of itens) {
-    const valor = (Number(item.quantidade) || 0) * (Number(item.valor_unit) || 0) + (Number(item.valor_material) || 0)
+    const valor = valorFinalItem(item)
     if (item.categoria === 'material') subtotalMaterial += valor
     else subtotalMaoObra += valor
   }
@@ -36,7 +47,7 @@ export function nomeServicoSemAmbiente(descricao: string): string {
 }
 
 export function formatarMoeda(n: number): string {
-  return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }).replace(' ', ' ')
 }
 
 // Preço de venda de material = custo de aquisição + margem do prestador
