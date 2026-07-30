@@ -1,7 +1,7 @@
 'use client'
 
 import { Wrench } from 'lucide-react'
-import { calcularOrcamento, formatarMoeda } from '@/lib/calc'
+import { calcularOrcamento, formatarMoeda, valorFinalItem } from '@/lib/calc'
 import type { Categoria } from '@/lib/types'
 
 interface PreviewItem {
@@ -13,6 +13,11 @@ interface PreviewItem {
   // Soma dos materiais por conta do prestador — flat, não multiplica
   // por quantidade (ver calcularOrcamento em lib/calc.ts).
   valor_material: number
+  // Ver valorFinalItem em lib/calc.ts — quando definido, é o valor
+  // final da linha (ignora quantidade*valor_unit+valor_material).
+  valor_customizado: number | null
+  // Texto livre opcional, some da linha se vazio/null.
+  observacoes: string | null
 }
 
 interface PreviewAmbiente {
@@ -170,13 +175,16 @@ export function OrcamentoPreview(props: OrcamentoPreviewProps) {
             {props.itens.map((it, i) => (
               <div key={i} className="grid grid-cols-[minmax(0,0.3fr)_minmax(0,2.2fr)_minmax(0,0.6fr)_minmax(0,0.5fr)_minmax(0,0.9fr)_minmax(0,0.9fr)] gap-x-2 border-b border-dotted border-line py-1.5">
                 <span>{i + 1}</span>
-                <span className="font-serif-body break-words">{it.descricao || 'Item sem nome'}</span>
+                <span className="font-serif-body break-words">
+                  {it.descricao || 'Item sem nome'}
+                  {it.observacoes && <div className="mt-0.5 text-[10px] italic text-ink-soft break-words">{it.observacoes}</div>}
+                </span>
                 <span className="text-center">{it.quantidade}</span>
                 <span className="text-center">{it.unidade}</span>
                 <span className="text-right">
                   {it.categoria === 'mao_obra' && props.ocultarValorUnitario ? '—' : formatarMoeda(Number(it.valor_unit) || 0)}
                 </span>
-                <span className="text-right">{formatarMoeda((Number(it.quantidade) || 0) * (Number(it.valor_unit) || 0) + (Number(it.valor_material) || 0))}</span>
+                <span className="text-right">{formatarMoeda(valorFinalItem(it))}</span>
               </div>
             ))}
           </div>
