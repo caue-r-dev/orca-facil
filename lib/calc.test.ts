@@ -70,6 +70,6 @@ describe('calcularOrcamento', () => {
 
 describe('formatarMoeda', () => {
   it('formats as BRL currency', () => {
-    expect(formatarMoeda(1234.5)).toBe('R$ 1.234,50')
+    expect(formatarMoeda(1234.5)).toBe('R$\u00A01.234,50')
   })
 })

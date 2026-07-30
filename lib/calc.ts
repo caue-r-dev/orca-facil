@@ -47,7 +47,7 @@ export function nomeServicoSemAmbiente(descricao: string): string {
 }
 
 export function formatarMoeda(n: number): string {
-  return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }).replace(' ', ' ')
+  return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
 // Preço de venda de material = custo de aquisição + margem do prestador
