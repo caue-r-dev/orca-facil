@@ -18,6 +18,9 @@ interface PreviewItem {
   valor_customizado: number | null
   // Texto livre opcional, some da linha se vazio/null.
   observacoes: string | null
+  // Ver migração 0016 — `quantidade` já vem com a área dobrada quando
+  // true; aqui só serve pra exibir a tag "(chapeamento duplo)".
+  chapeamento_duplo: boolean
 }
 
 interface PreviewAmbiente {
@@ -177,6 +180,7 @@ export function OrcamentoPreview(props: OrcamentoPreviewProps) {
                 <span>{i + 1}</span>
                 <span className="font-serif-body break-words">
                   {it.descricao || 'Item sem nome'}
+                  {it.chapeamento_duplo && <span className="text-[10px] text-ink-soft"> (chapeamento duplo)</span>}
                   {it.observacoes && <span className="mt-0.5 block text-[10px] italic text-ink-soft break-words">{it.observacoes}</span>}
                 </span>
                 <span className="text-center">{it.quantidade}</span>

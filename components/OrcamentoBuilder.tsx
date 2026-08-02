@@ -29,6 +29,12 @@ interface ItemForm {
   valor_customizado: number | null
   // Texto livre opcional, aparece na proposta/PDF.
   observacoes: string
+  // Dobra a área de parede usada no cálculo desse item (só relevante
+  // pra origem_ambiente === 'area_parede') — cobre os dois lados da
+  // parede. Já embutido em `quantidade` (ver alternarChapeamentoDuplo).
+  // Snake_case de propósito (como valor_customizado/observacoes acima)
+  // pra bater direto com ItemOrcamento/PreviewItem sem remapear.
+  chapeamento_duplo: boolean
 }
 
 interface AmbienteForm {
@@ -82,6 +88,14 @@ function calcularMedida(a: AmbienteForm, medida: MedidaAmbiente): number {
   if (medida === 'perimetro') return calcularPerimetro(a)
   if (medida === 'area_parede') return calcularAreaParede(a)
   return calcularArea(a)
+}
+
+// quantidade efetiva de um item = medida do ambiente, dobrada quando o
+// chapeamento duplo está ativo (só faz sentido pra área de parede — em
+// qualquer outra medida o multiplicador não se aplica).
+function calcularQuantidadeEfetiva(a: AmbienteForm, medida: MedidaAmbiente, chapeamentoDuplo: boolean): number {
+  const base = calcularMedida(a, medida)
+  return medida === 'area_parede' && chapeamentoDuplo ? arredondar(base * 2) : base
 }
 
 export interface OrcamentoBuilderPayload {
@@ -181,6 +195,7 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
       ...it,
       valor_customizado: it.valor_customizado ?? null,
       observacoes: it.observacoes ?? '',
+      chapeamento_duplo: it.chapeamento_duplo ?? false,
     })) ?? (valoresIniciais?.itens ?? []).map((it) => ({
       ...it,
       localId: nextLocalId++,
@@ -195,6 +210,7 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
       valor_material: it.valor_material,
       valor_customizado: it.valor_customizado ?? null,
       observacoes: it.observacoes ?? '',
+      chapeamento_duplo: it.chapeamento_duplo ?? false,
     }))
   )
   const [picker, setPicker] = useState<Record<number, PickerAmbiente>>({})
@@ -239,7 +255,7 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
     setItens((prev) => prev.map((it) => {
       if (it.ambienteLocalId !== localId || !it.origem_ambiente) return it
       if (!medidas.includes(it.origem_ambiente)) return it
-      return { ...it, quantidade: calcularMedida(novoAmbiente, it.origem_ambiente) }
+      return { ...it, quantidade: calcularQuantidadeEfetiva(novoAmbiente, it.origem_ambiente, it.chapeamento_duplo) }
     }))
   }
 
@@ -294,6 +310,7 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
         valor_material: valorMaterial,
         valor_customizado: null,
         observacoes: '',
+        chapeamento_duplo: false,
       },
     ])
     setPicker((prev) => ({ ...prev, [ambienteLocalId]: { servicoId: '', medida: escolha.medida, materialAberto: false, materialIds: [] } }))
@@ -320,6 +337,25 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
 
   function definirObservacoes(localId: number, texto: string) {
     setItens((prev) => prev.map((it) => (it.localId === localId ? { ...it, observacoes: texto } : it)))
+  }
+
+  // Alterna chapeamento duplo — recalcula a quantidade (dobrada/normal)
+  // e limpa um eventual override manual, porque a área usada de base
+  // mudou e o valor customizado antigo não corresponde mais a nada
+  // (o botão "Valor customizado" deixa claro visualmente que o valor
+  // voltou a ser o calculado).
+  function alternarChapeamentoDuplo(localId: number, ativo: boolean) {
+    setItens((prev) => prev.map((it) => {
+      if (it.localId !== localId) return it
+      const ambiente = ambientes.find((a) => a.localId === it.ambienteLocalId)
+      if (!ambiente || !it.origem_ambiente) return { ...it, chapeamento_duplo: ativo }
+      return {
+        ...it,
+        chapeamento_duplo: ativo,
+        quantidade: calcularQuantidadeEfetiva(ambiente, it.origem_ambiente, ativo),
+        valor_customizado: null,
+      }
+    }))
   }
 
   async function salvar() {
@@ -474,17 +510,37 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
                         {itensDoAmbiente.map((it) => {
                           const valorFinal = valorFinalItem(it)
                           const temOverride = it.valor_customizado !== null
+                          const ehAreaParede = it.origem_ambiente === 'area_parede'
+                          const areaBase = ehAreaParede ? calcularAreaParede(a) : null
                           return (
                             <div key={it.localId} className="rounded-sm bg-paper p-3.5">
                               <div className="flex items-start justify-between gap-2">
                                 <div className="flex-1">
-                                  <div className="text-xs font-bold text-blueprint-deep">{it.descricao}</div>
+                                  <div className="text-xs font-bold text-blueprint-deep">
+                                    {it.descricao}
+                                    {it.chapeamento_duplo && <span className="ml-1 text-[10px] font-normal normal-case text-brass">(chapeamento duplo)</span>}
+                                  </div>
                                   <div className="mt-1 font-mono-num text-xs text-ink-soft">
-                                    {it.origem_ambiente && MEDIDA_LABEL[it.origem_ambiente] ? MEDIDA_LABEL[it.origem_ambiente] : 'Manual'} · {it.quantidade.toFixed(2)}{it.unidade} × {formatarMoeda(it.valor_unit)}
+                                    {it.origem_ambiente && MEDIDA_LABEL[it.origem_ambiente] ? MEDIDA_LABEL[it.origem_ambiente] : 'Manual'}
+                                    {' · '}
+                                    {it.chapeamento_duplo && areaBase !== null
+                                      ? `${areaBase.toFixed(2)}${it.unidade} × 2 = ${it.quantidade.toFixed(2)}${it.unidade}`
+                                      : `${it.quantidade.toFixed(2)}${it.unidade}`}
+                                    {' × '}{formatarMoeda(it.valor_unit)}
                                     {it.valor_material > 0 && ` + ${formatarMoeda(it.valor_material)}`}
                                     {' '}= {formatarMoeda(it.quantidade * it.valor_unit + it.valor_material)}
                                     {temOverride && <span className="ml-1 text-brass">(calculado)</span>}
                                   </div>
+                                  {ehAreaParede && (
+                                    <label className="mt-1.5 flex items-center gap-1.5 text-[11px] text-ink-soft">
+                                      <input
+                                        type="checkbox"
+                                        checked={it.chapeamento_duplo}
+                                        onChange={(e) => alternarChapeamentoDuplo(it.localId, e.target.checked)}
+                                      />
+                                      Chapeamento duplo (dobra a área de parede)
+                                    </label>
+                                  )}
                                   {it.materialItemIds.length > 0 && (
                                     <div className="mt-0.5 text-[11px] text-ink-soft">
                                       Materiais: {it.materialItemIds.map((id) => materiaisBiblioteca.find((m) => m.id === id)?.descricao).filter(Boolean).join(', ')}

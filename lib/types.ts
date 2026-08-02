@@ -87,6 +87,10 @@ export interface ItemOrcamento {
   // Texto livre opcional por item, aparece na proposta/PDF junto da
   // descrição do serviço — ver migração 0015.
   observacoes: string | null
+  // Dobra a área de parede usada no cálculo desse item (só faz sentido
+  // com origem_ambiente = 'area_parede') — cobre os dois lados da
+  // parede. Ver migração 0016.
+  chapeamento_duplo: boolean
 }
 
 export interface AmbienteOrcamento {
