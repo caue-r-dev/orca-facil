@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { NavLinks } from '@/components/NavLinks'
+import { OfflineBanner } from '@/components/OfflineBanner'
 
 export const metadata = {
   title: 'Orça Fácil',
@@ -34,6 +35,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="pt-BR">
       <body>
+        <OfflineBanner />
         {user && (
           <nav className="no-print relative h-14 bg-brand-text px-6">
             <div className="mx-auto flex h-14 max-w-6xl items-center justify-between text-sm">

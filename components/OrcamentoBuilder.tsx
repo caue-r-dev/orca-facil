@@ -368,6 +368,13 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
       setErro('Adicione ao menos um serviço a um ambiente.')
       return
     }
+    // Fase 1 do PWA offline é só visualização — salvar exige rede. Falha
+    // rápido e com mensagem clara em vez de deixar a server action
+    // tentar e travar/lançar um erro genérico de fetch.
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setErro('Sem conexão — não é possível salvar agora. Tente novamente quando a internet voltar.')
+      return
+    }
     setSalvando(true)
     // Limpa o rascunho local antes de enviar: se salvar com sucesso, o
     // redirect pra tela de edição não deve trazer o rascunho antigo de
@@ -398,7 +405,15 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
         throw e
       }
       setSalvando(false)
-      setErro('Erro ao salvar orçamento. Tente novamente.')
+      // TypeError é o que o browser lança pra fetch que não conseguiu
+      // nem completar a requisição (rede caiu no meio da tentativa) —
+      // navigator.onLine podia estar true no início e virar false só
+      // durante o request.
+      setErro(
+        e instanceof TypeError
+          ? 'Sem conexão — não é possível salvar agora. Tente novamente quando a internet voltar.'
+          : 'Erro ao salvar orçamento. Tente novamente.'
+      )
     }
   }
 
