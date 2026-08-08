@@ -6,8 +6,8 @@ import { useState } from 'react'
 // (html2canvas + jsPDF), em vez de depender do diálogo de impressão do
 // navegador — elimina de vez a variável "escala Padrão vs Customizada"
 // que causava corte/espaço em branco conforme o navegador/impressora do
-// usuário: aqui o PDF sai sempre com a mesma largura A4 e altura
-// paginada automaticamente a partir da imagem capturada.
+// usuário: aqui o PDF sai sempre com a mesma largura A4, e a proposta
+// inteira é encolhida (se preciso) pra caber sempre em 1 única página.
 export function PrintButton() {
   const [gerando, setGerando] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
@@ -46,33 +46,19 @@ export function PrintButton() {
       let larguraImagem = larguraPagina
       let alturaImagem = (canvas.height * larguraPagina) / canvas.width
 
-      // Se sobrar só um resto pequeno pra última página (ex: só o
-      // rodapé), comprime a imagem inteira o suficiente pra caber com
-      // uma página a menos, em vez de gerar uma página quase em branco
-      // só por uma linha de texto.
-      const ORFAO_LIMITE_MM = 25
-      const paginasSemAjuste = Math.ceil(alturaImagem / alturaPagina)
-      if (paginasSemAjuste > 1) {
-        const restoUltimaPagina = alturaImagem - (paginasSemAjuste - 1) * alturaPagina
-        if (restoUltimaPagina < ORFAO_LIMITE_MM) {
-          const fator = ((paginasSemAjuste - 1) * alturaPagina) / alturaImagem
-          larguraImagem *= fator
-          alturaImagem *= fator
-        }
+      // A proposta é sempre 1 página — nunca gera addPage(). Se o
+      // conteúdo capturado passar da altura da A4, encolhe a imagem
+      // inteira (mantendo a proporção) até caber, em vez de estourar
+      // pra uma 2ª página com só rodapé/assinatura e muito espaço em
+      // branco.
+      if (alturaImagem > alturaPagina) {
+        const fator = alturaPagina / alturaImagem
+        larguraImagem *= fator
+        alturaImagem *= fator
       }
 
       const deslocamentoX = (larguraPagina - larguraImagem) / 2
-      let alturaRestante = alturaImagem
-      let posicaoY = 0
-      pdf.addImage(imagem, 'JPEG', deslocamentoX, posicaoY, larguraImagem, alturaImagem)
-      alturaRestante -= alturaPagina
-
-      while (alturaRestante > 0) {
-        posicaoY = alturaRestante - alturaImagem
-        pdf.addPage()
-        pdf.addImage(imagem, 'JPEG', deslocamentoX, posicaoY, larguraImagem, alturaImagem)
-        alturaRestante -= alturaPagina
-      }
+      pdf.addImage(imagem, 'JPEG', deslocamentoX, 0, larguraImagem, alturaImagem)
 
       pdf.save('proposta-de-orcamento.pdf')
     } catch {

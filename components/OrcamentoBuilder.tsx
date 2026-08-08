@@ -53,12 +53,21 @@ interface PickerAmbiente {
   medida: MedidaAmbiente
   materialAberto: boolean
   materialIds: string[]
+  quantidadeManual: number
 }
 
 const MEDIDA_LABEL: Record<MedidaAmbiente, string> = {
   perimetro: 'Perímetro',
   area: 'Área',
   area_parede: 'Área de parede',
+}
+
+// Serviços cobrados por unidade contada (não por medida do ambiente) —
+// não faz sentido vincular a perímetro/área/área de parede, então em
+// vez do seletor de medida pedimos só a quantidade de unidades.
+const UNIDADES_SEM_MEDIDA = ['un', 'h', 'vb']
+function servicoSemMedida(unidade: string): boolean {
+  return UNIDADES_SEM_MEDIDA.includes(unidade)
 }
 
 function arredondar(n: number): number {
@@ -215,7 +224,7 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
   )
   const [picker, setPicker] = useState<Record<number, PickerAmbiente>>({})
   function pickerPadrao(ambienteLocalId: number, estado: Record<number, PickerAmbiente>): PickerAmbiente {
-    return estado[ambienteLocalId] ?? { servicoId: '', medida: medidas[0], materialAberto: false, materialIds: [] }
+    return estado[ambienteLocalId] ?? { servicoId: '', medida: medidas[0], materialAberto: false, materialIds: [], quantidadeManual: 1 }
   }
   const [clienteNome, setClienteNome] = useState(rascunho?.clienteNome ?? valoresIniciais?.clienteNome ?? '')
   const [clienteContato, setClienteContato] = useState(rascunho?.clienteContato ?? valoresIniciais?.clienteContato ?? '')
@@ -272,6 +281,10 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
     setPicker((prev) => ({ ...prev, [ambienteLocalId]: { ...pickerPadrao(ambienteLocalId, prev), medida } }))
   }
 
+  function definirPickerQuantidade(ambienteLocalId: number, quantidadeManual: number) {
+    setPicker((prev) => ({ ...prev, [ambienteLocalId]: { ...pickerPadrao(ambienteLocalId, prev), quantidadeManual } }))
+  }
+
   function alternarPickerMaterial(ambienteLocalId: number) {
     setPicker((prev) => {
       const atual = pickerPadrao(ambienteLocalId, prev)
@@ -292,6 +305,7 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
       .map((id) => materiaisBiblioteca.find((m) => m.id === id))
       .filter((m): m is ItemBiblioteca => !!m)
     const valorMaterial = arredondar(materiais.reduce((soma, m) => soma + m.valor_unit_padrao, 0))
+    const semMedida = servicoSemMedida(servico.unidade)
     setItens((prev) => [
       ...prev,
       {
@@ -302,10 +316,10 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
         modo_medicao: 'manual',
         comprimento: null,
         altura: null,
-        quantidade: calcularMedida(ambiente, escolha.medida),
+        quantidade: semMedida ? escolha.quantidadeManual : calcularMedida(ambiente, escolha.medida),
         valor_unit: servico.valor_unit_padrao,
         ambienteLocalId: ambiente.localId,
-        origem_ambiente: escolha.medida,
+        origem_ambiente: semMedida ? null : escolha.medida,
         materialItemIds: materiais.map((m) => m.id),
         valor_material: valorMaterial,
         valor_customizado: null,
@@ -313,7 +327,7 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
         chapeamento_duplo: false,
       },
     ])
-    setPicker((prev) => ({ ...prev, [ambienteLocalId]: { servicoId: '', medida: escolha.medida, materialAberto: false, materialIds: [] } }))
+    setPicker((prev) => ({ ...prev, [ambienteLocalId]: { servicoId: '', medida: escolha.medida, materialAberto: false, materialIds: [], quantidadeManual: 1 } }))
   }
 
   function removerItem(localId: number) {
@@ -462,6 +476,8 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
               const itensDoAmbiente = itens.filter((it) => it.ambienteLocalId === a.localId)
               const totalAmbiente = itensDoAmbiente.reduce((soma, it) => soma + valorFinalItem(it), 0)
               const escolha = pickerPadrao(a.localId, picker)
+              const servicoEscolhido = escolha.servicoId ? servicosBiblioteca.find((s) => s.id === escolha.servicoId) : undefined
+              const semMedidaEscolhida = servicoEscolhido ? servicoSemMedida(servicoEscolhido.unidade) : false
 
               return (
                 <div key={a.localId} className="flex flex-col gap-5 border border-line bg-white p-4 sm:p-5">
@@ -620,17 +636,29 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
                               ))}
                             </select>
                           </label>
-                          <label className="flex flex-col gap-1 text-xs">Medida
-                            <select
-                              value={escolha.medida}
-                              onChange={(e) => definirPickerMedida(a.localId, e.target.value as MedidaAmbiente)}
-                              className="border-b border-line bg-white py-1 outline-none focus:border-brass"
-                            >
-                              {medidas.map((m) => (
-                                <option key={m} value={m}>{MEDIDA_LABEL[m]}</option>
-                              ))}
-                            </select>
-                          </label>
+                          {semMedidaEscolhida ? (
+                            <label className="flex flex-col gap-1 text-xs">Quantidade ({servicoEscolhido!.unidade})
+                              <NumeroInput
+                                step="1"
+                                min="0"
+                                value={escolha.quantidadeManual}
+                                onChange={(n) => definirPickerQuantidade(a.localId, n)}
+                                className="font-mono-num w-20 border-b border-line bg-transparent py-1 outline-none focus:border-brass"
+                              />
+                            </label>
+                          ) : (
+                            <label className="flex flex-col gap-1 text-xs">Medida
+                              <select
+                                value={escolha.medida}
+                                onChange={(e) => definirPickerMedida(a.localId, e.target.value as MedidaAmbiente)}
+                                className="border-b border-line bg-white py-1 outline-none focus:border-brass"
+                              >
+                                {medidas.map((m) => (
+                                  <option key={m} value={m}>{MEDIDA_LABEL[m]}</option>
+                                ))}
+                              </select>
+                            </label>
+                          )}
                           {materiaisBiblioteca.length > 0 && (
                             <button
                               type="button"
@@ -642,7 +670,7 @@ export function OrcamentoBuilder({ biblioteca, segmentoPadrao, temParede, empres
                           )}
                           <button
                             onClick={() => adicionarServicoAoAmbiente(a.localId)}
-                            disabled={!escolha.servicoId}
+                            disabled={!escolha.servicoId || (semMedidaEscolhida && escolha.quantidadeManual <= 0)}
                             className="rounded-sm border border-dashed border-line px-3.5 py-2 text-sm text-ink-soft disabled:opacity-50"
                           >
                             + Adicionar serviço ao ambiente
